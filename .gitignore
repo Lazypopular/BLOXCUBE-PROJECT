@@ -1,0 +1,17 @@
+# Wally packages (keep folder structure for Rojo build)
+/Packages/*
+!/Packages/.gitkeep
+/ServerPackages/
+/DevPackages/
+
+# Rojo & build artifacts
+/build/
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+sourcemap.json
+
+# OS & Editor files
+.DS_Store
+Thumbs.db

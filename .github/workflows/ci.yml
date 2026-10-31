@@ -1,0 +1,56 @@
+name: BLOXCUBE Quality Gate
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  validate:
+    name: Lint, Format & Build Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # ขั้นตอนที่ 1: ตรวจสอบการจัดหน้าโค้ด
+      - name: Check Code Formatting (StyLua)
+        uses: JohnnyMorganz/stylua-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --check src/
+
+      # ขั้นตอนที่ 2: ตรวจสอบ Static Code Analysis
+      - name: Lint Code (Selene)
+        uses: Kampfkarren/selene-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: src/
+
+      # ขั้นตอนที่ 3: ติดตั้ง Foreman และเครื่องมือ
+      - name: Setup Foreman Tools
+        uses: Roblox/setup-foreman@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allow-external-github-orgs: true
+
+      # ขั้นตอนที่ 4: ทดสอบประกอบเป็นไฟล์แมพ Roblox
+      - name: Verify Rojo Build
+        run: |
+          mkdir -p build Packages
+          rojo build default.project.json --output build/BLOXCUBE.rbxl
+
+      # ขั้นตอนที่ 5: เก็บ Artifact ไฟล์แมพที่ Build ได้ (เก็บไว้ตรวจสอบ 7 วัน)
+      - name: Upload Built Place File
+        uses: actions/upload-artifact@v4
+        with:
+          name: bloxcube-compiled-place
+          path: build/BLOXCUBE.rbxl
+          retention-days: 7
