@@ -14,6 +14,10 @@ local REMOTE_EVENTS = {
     "DodgePerformed",
     "RequestUpdateAppearance",
     "StateSynced",
+    "RequestAttack",
+    "CombatVFX",
+    "DamageNumber",
+    "QuestNotification",
 }
 
 local networkFolder: Folder? = nil

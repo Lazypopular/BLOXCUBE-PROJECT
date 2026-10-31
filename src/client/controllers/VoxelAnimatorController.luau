@@ -1,5 +1,5 @@
 --!strict
--- VoxelAnimatorController: Procedural 60FPS Cube World Voxel Animation & VFX
+-- VoxelAnimatorController: Procedural 60FPS Cube World Voxel Animation (Movement + Combat Swings)
 
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
@@ -17,6 +17,10 @@ type RigAnimState = {
     IdleTime: number,
     RollStartTime: number,
     LastDodgeSeq: number,
+    AttackStartTime: number,
+    LastAttackSeq: number,
+    AttackComboStep: number,
+    AttackKind: string,
 }
 
 local animStates: { [Model]: RigAnimState } = {}
@@ -27,12 +31,17 @@ local function getOrCreateState(character: Model): RigAnimState
         return existing
     end
 
-    local seq = (character:GetAttribute("DodgeRollSeq") :: number?) or 0
+    local dodgeSeq = (character:GetAttribute("DodgeRollSeq") :: number?) or 0
+    local attackSeq = (character:GetAttribute("AttackSeq") :: number?) or 0
     local state: RigAnimState = {
         WalkCycle = 0,
         IdleTime = 0,
         RollStartTime = -10,
-        LastDodgeSeq = seq,
+        LastDodgeSeq = dodgeSeq,
+        AttackStartTime = -10,
+        LastAttackSeq = attackSeq,
+        AttackComboStep = 1,
+        AttackKind = "LMB",
     }
     animStates[character] = state
     return state
@@ -113,11 +122,19 @@ local function animateCharacter(character: Model, dt: number, now: number)
         spawnVoxelDustBurst(rootPart, 6)
     end
 
+    -- Detect Attack Swing Trigger
+    local currentAttackSeq = (character:GetAttribute("AttackSeq") :: number?) or 0
+    if currentAttackSeq ~= state.LastAttackSeq then
+        state.LastAttackSeq = currentAttackSeq
+        state.AttackStartTime = now
+        state.AttackComboStep = (character:GetAttribute("AttackComboStep") :: number?) or 1
+        state.AttackKind = (character:GetAttribute("AttackKind") :: string?) or "LMB"
+    end
+
     local rollElapsed = now - state.RollStartTime
     local rollDuration = GameConfig.Movement.DodgeDuration
 
     if rollElapsed >= 0 and rollElapsed < rollDuration then
-        -- 360-Degree Cube World Forward Somersault Roll
         local alpha = math.clamp(rollElapsed / rollDuration, 0, 1)
         local flipAngle = -alpha * math.pi * 2
         local hopHeight = math.sin(alpha * math.pi) * 0.85
@@ -135,26 +152,25 @@ local function animateCharacter(character: Model, dt: number, now: number)
     local flatSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
     local isAirborne = humanoid.FloorMaterial == Enum.Material.Air
     local isSprinting = character:GetAttribute("IsSprinting") == true
+    local jobClass = (character:GetAttribute("JobClass") :: string?) or "Novice"
 
     local lerpSpeed = math.min(1, dt * 16)
 
-    if isAirborne then
-        -- Airborne Jump / Fall Pose
-        local rootGoal = rootBase * CFrame.new(0, 0.15, 0) * CFrame.Angles(math.rad(-8), 0, 0)
-        local neckGoal = neckBase * CFrame.Angles(math.rad(10), 0, 0)
-        local lArmGoal = lShoulderBase * CFrame.Angles(math.rad(135), 0, math.rad(-18))
-        local rArmGoal = rShoulderBase * CFrame.Angles(math.rad(135), 0, math.rad(18))
-        local lFootGoal = lHipBase * CFrame.new(0, 0.2, -0.15) * CFrame.Angles(math.rad(-28), 0, 0)
-        local rFootGoal = rHipBase * CFrame.new(0, 0.1, 0.15) * CFrame.Angles(math.rad(22), 0, 0)
+    local rootGoal = rootBase
+    local neckGoal = neckBase
+    local lArmGoal = lShoulderBase
+    local rArmGoal = rShoulderBase
+    local lFootGoal = lHipBase
+    local rFootGoal = rHipBase
 
-        rootJoint.C0 = rootJoint.C0:Lerp(rootGoal, lerpSpeed)
-        neck.C0 = neck.C0:Lerp(neckGoal, lerpSpeed)
-        leftShoulder.C0 = leftShoulder.C0:Lerp(lArmGoal, lerpSpeed)
-        rightShoulder.C0 = rightShoulder.C0:Lerp(rArmGoal, lerpSpeed)
-        leftHip.C0 = leftHip.C0:Lerp(lFootGoal, lerpSpeed)
-        rightHip.C0 = rightHip.C0:Lerp(rFootGoal, lerpSpeed)
+    if isAirborne then
+        rootGoal = rootBase * CFrame.new(0, 0.15, 0) * CFrame.Angles(math.rad(-8), 0, 0)
+        neckGoal = neckBase * CFrame.Angles(math.rad(10), 0, 0)
+        lArmGoal = lShoulderBase * CFrame.Angles(math.rad(135), 0, math.rad(-18))
+        rArmGoal = rShoulderBase * CFrame.Angles(math.rad(135), 0, math.rad(18))
+        lFootGoal = lHipBase * CFrame.new(0, 0.2, -0.15) * CFrame.Angles(math.rad(-28), 0, 0)
+        rFootGoal = rHipBase * CFrame.new(0, 0.1, 0.15) * CFrame.Angles(math.rad(22), 0, 0)
     elseif flatSpeed > 0.8 then
-        -- Cube World Bouncy Voxel Walk / Sprint Cycle
         local cycleRate = if isSprinting then 13.5 else 9.5
         state.WalkCycle += dt * cycleRate
 
@@ -168,36 +184,67 @@ local function animateCharacter(character: Model, dt: number, now: number)
         local lFootLift = math.max(0, s) * 0.28
         local rFootLift = math.max(0, -s) * 0.28
 
-        local rootGoal = rootBase * CFrame.new(0, bounce, 0) * CFrame.Angles(forwardLean, torsoTwist, 0)
-        local neckGoal = neckBase * CFrame.Angles(-forwardLean * 0.6, -torsoTwist * 0.5, 0)
-        local lArmGoal = lShoulderBase * CFrame.Angles(-s * armAmp, 0, math.rad(-6))
-        local rArmGoal = rShoulderBase * CFrame.Angles(s * armAmp, 0, math.rad(6))
-        local lFootGoal = lHipBase * CFrame.new(0, lFootLift, 0) * CFrame.Angles(s * swingAmp, 0, 0)
-        local rFootGoal = rHipBase * CFrame.new(0, rFootLift, 0) * CFrame.Angles(-s * swingAmp, 0, 0)
-
-        rootJoint.C0 = rootJoint.C0:Lerp(rootGoal, lerpSpeed)
-        neck.C0 = neck.C0:Lerp(neckGoal, lerpSpeed)
-        leftShoulder.C0 = leftShoulder.C0:Lerp(lArmGoal, lerpSpeed)
-        rightShoulder.C0 = rightShoulder.C0:Lerp(rArmGoal, lerpSpeed)
-        leftHip.C0 = leftHip.C0:Lerp(lFootGoal, lerpSpeed)
-        rightHip.C0 = rightHip.C0:Lerp(rFootGoal, lerpSpeed)
+        rootGoal = rootBase * CFrame.new(0, bounce, 0) * CFrame.Angles(forwardLean, torsoTwist, 0)
+        neckGoal = neckBase * CFrame.Angles(-forwardLean * 0.6, -torsoTwist * 0.5, 0)
+        lArmGoal = lShoulderBase * CFrame.Angles(-s * armAmp, 0, math.rad(-6))
+        rArmGoal = rShoulderBase * CFrame.Angles(s * armAmp, 0, math.rad(6))
+        lFootGoal = lHipBase * CFrame.new(0, lFootLift, 0) * CFrame.Angles(s * swingAmp, 0, 0)
+        rFootGoal = rHipBase * CFrame.new(0, rFootLift, 0) * CFrame.Angles(-s * swingAmp, 0, 0)
     else
-        -- Breathing Idle Pose
         local breath = math.sin(state.IdleTime * 2.6) * 0.06
         local armSway = math.sin(state.IdleTime * 2.6) * math.rad(4)
 
-        local rootGoal = rootBase * CFrame.new(0, breath, 0)
-        local neckGoal = neckBase * CFrame.Angles(math.sin(state.IdleTime * 1.5) * math.rad(2.5), 0, 0)
-        local lArmGoal = lShoulderBase * CFrame.Angles(armSway, 0, math.rad(-5))
-        local rArmGoal = rShoulderBase * CFrame.Angles(-armSway, 0, math.rad(5))
-
-        rootJoint.C0 = rootJoint.C0:Lerp(rootGoal, lerpSpeed)
-        neck.C0 = neck.C0:Lerp(neckGoal, lerpSpeed)
-        leftShoulder.C0 = leftShoulder.C0:Lerp(lArmGoal, lerpSpeed)
-        rightShoulder.C0 = rightShoulder.C0:Lerp(rArmGoal, lerpSpeed)
-        leftHip.C0 = leftHip.C0:Lerp(lHipBase, lerpSpeed)
-        rightHip.C0 = rightHip.C0:Lerp(rHipBase, lerpSpeed)
+        rootGoal = rootBase * CFrame.new(0, breath, 0)
+        neckGoal = neckBase * CFrame.Angles(math.sin(state.IdleTime * 1.5) * math.rad(2.5), 0, 0)
+        lArmGoal = lShoulderBase * CFrame.Angles(armSway, 0, math.rad(-5))
+        rArmGoal = rShoulderBase * CFrame.Angles(-armSway, 0, math.rad(5))
     end
+
+    -- Overlay Procedural Weapon Swing Pose during Active Attack
+    local attackElapsed = now - state.AttackStartTime
+    local attackDuration = if state.AttackKind == "RMB" then 0.36 else 0.26
+
+    if attackElapsed >= 0 and attackElapsed < attackDuration then
+        local a = math.clamp(attackElapsed / attackDuration, 0, 1)
+        local swingArc = math.sin(a * math.pi)
+
+        if state.AttackKind == "RMB" and jobClass == "Warrior" then
+            -- 360 Whirlwind Cleave Spin
+            rootGoal = rootGoal * CFrame.Angles(0, a * math.pi * 2, 0)
+            rArmGoal = rShoulderBase * CFrame.Angles(math.rad(90), 0, math.rad(75))
+            lArmGoal = lShoulderBase * CFrame.Angles(math.rad(85), 0, math.rad(-55))
+        elseif jobClass == "Ranger" then
+            -- Bow Draw & Release
+            lArmGoal = lShoulderBase * CFrame.Angles(math.rad(90), math.rad(15), 0)
+            rArmGoal = rShoulderBase * CFrame.Angles(math.rad(92 - swingArc * 35), math.rad(-25), 0)
+            rootGoal = rootGoal * CFrame.Angles(0, math.rad(-22), 0)
+        elseif state.AttackComboStep == 2 then
+            -- Backhand / Offhand Slash
+            rootGoal = rootGoal * CFrame.Angles(math.rad(-8), math.rad(-32 * swingArc), 0)
+            rArmGoal = rShoulderBase * CFrame.Angles(math.rad(115 - 95 * a), math.rad(35 * swingArc), math.rad(-25))
+            if jobClass == "Rogue" then
+                lArmGoal = lShoulderBase * CFrame.Angles(math.rad(145 - 125 * a), 0, math.rad(-15))
+            end
+        elseif state.AttackComboStep == 3 or state.AttackKind == "RMB" then
+            -- Heavy Overhead Slam
+            rootGoal = rootGoal * CFrame.Angles(math.rad(-16 * swingArc), math.rad(24 * swingArc), 0)
+            rArmGoal = rShoulderBase * CFrame.Angles(math.rad(175 - 155 * a), 0, math.rad(10))
+            lArmGoal = lShoulderBase * CFrame.Angles(math.rad(135 - 105 * a), 0, math.rad(-15))
+        else
+            -- Combo 1 Diagonal Slash
+            rootGoal = rootGoal * CFrame.Angles(math.rad(-10 * swingArc), math.rad(28 * swingArc), 0)
+            rArmGoal = rShoulderBase * CFrame.Angles(math.rad(150 - 130 * a), math.rad(-28 * swingArc), math.rad(18))
+        end
+
+        lerpSpeed = math.min(1, dt * 28)
+    end
+
+    rootJoint.C0 = rootJoint.C0:Lerp(rootGoal, lerpSpeed)
+    neck.C0 = neck.C0:Lerp(neckGoal, lerpSpeed)
+    leftShoulder.C0 = leftShoulder.C0:Lerp(lArmGoal, lerpSpeed)
+    rightShoulder.C0 = rightShoulder.C0:Lerp(rArmGoal, lerpSpeed)
+    leftHip.C0 = leftHip.C0:Lerp(lFootGoal, lerpSpeed)
+    rightHip.C0 = rightHip.C0:Lerp(rFootGoal, lerpSpeed)
 end
 
 function VoxelAnimatorController.init()
