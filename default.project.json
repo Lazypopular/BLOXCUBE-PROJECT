@@ -1,20 +1,32 @@
 {
   "name": "BLOXCUBE",
+  "globIgnorePaths": ["**/.gitkeep"],
   "tree": {
     "$className": "DataModel",
 
     "ServerScriptService": {
-      "$path": "src/server"
+      "$className": "ServerScriptService",
+      "$path": "src/server",
+      "$ignoreUnknownInstances": true
     },
 
     "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "$ignoreUnknownInstances": true,
+      "$properties": {
+        "EnableMouseLockOption": false
+      },
       "StarterPlayerScripts": {
-        "$path": "src/client"
+        "$className": "StarterPlayerScripts",
+        "$path": "src/client",
+        "$ignoreUnknownInstances": true
       }
     },
 
     "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
       "$path": "src/shared",
+      "$ignoreUnknownInstances": true,
       "Packages": {
         "$path": "Packages"
       }
