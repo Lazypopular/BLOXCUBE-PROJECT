@@ -1,5 +1,5 @@
 --!strict
--- HudUI: Cube World Style Status Bars (HP, MP, Stamina), Crosshair & Character/Outfit Customizer
+-- HudUI: Cube World Status Bars, Quest Tracker, Combat Skill Bar & Character/Outfit Customizer
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local CharacterConfig = require(ReplicatedStorage.configs.CharacterConfig)
+local CombatConfig = require(ReplicatedStorage.configs.CombatConfig)
 local GameConfig = require(ReplicatedStorage.configs.GameConfig)
 local Network = require(ReplicatedStorage.network)
 local CameraController = require(script.Parent.Parent.controllers.CameraController)
@@ -36,11 +37,13 @@ local function createStatBar(
     name: string,
     labelPrefix: string,
     barColor: Color3,
-    posY: number
+    posY: number,
+    height: number?
 ): (Frame, TextLabel)
+    local barHeight = height or 20
     local container = Instance.new("Frame")
     container.Name = name .. "Container"
-    container.Size = UDim2.new(1, -24, 0, 22)
+    container.Size = UDim2.new(1, -24, 0, barHeight)
     container.Position = UDim2.new(0, 12, 0, posY)
     container.BackgroundColor3 = Color3.fromRGB(22, 25, 34)
     container.BorderSizePixel = 0
@@ -70,7 +73,7 @@ local function createStatBar(
     text.Position = UDim2.new(0, 8, 0, 0)
     text.BackgroundTransparency = 1
     text.Font = Enum.Font.GothamBold
-    text.TextSize = 12
+    text.TextSize = 11
     text.TextColor3 = Color3.fromRGB(248, 250, 255)
     text.TextStrokeTransparency = 0.35
     text.TextXAlignment = Enum.TextXAlignment.Left
@@ -99,7 +102,7 @@ function HudUI.init()
     -- 1. Top-Left Cube World Status Card
     local statusCard = Instance.new("Frame")
     statusCard.Name = "StatusCard"
-    statusCard.Size = UDim2.new(0, 286, 0, 128)
+    statusCard.Size = UDim2.new(0, 300, 0, 148)
     statusCard.Position = UDim2.new(0, 20, 0, 20)
     statusCard.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
     statusCard.BackgroundTransparency = 0.12
@@ -110,20 +113,20 @@ function HudUI.init()
 
     local headerLabel = Instance.new("TextLabel")
     headerLabel.Name = "HeaderLabel"
-    headerLabel.Size = UDim2.new(1, -24, 0, 24)
-    headerLabel.Position = UDim2.new(0, 12, 0, 8)
+    headerLabel.Size = UDim2.new(1, -24, 0, 22)
+    headerLabel.Position = UDim2.new(0, 12, 0, 7)
     headerLabel.BackgroundTransparency = 1
     headerLabel.Font = Enum.Font.GothamBlack
-    headerLabel.TextSize = 14
+    headerLabel.TextSize = 13
     headerLabel.TextColor3 = Color3.fromRGB(245, 208, 96)
     headerLabel.TextXAlignment = Enum.TextXAlignment.Left
-    headerLabel.Text = "BLOXCUBE  |  LV. 1  [Novice]"
+    headerLabel.Text = "LV. 1  [Novice]   |   Gold: 0"
     headerLabel.Parent = statusCard
 
     local dodgeBadge = Instance.new("TextLabel")
     dodgeBadge.Name = "DodgeBadge"
     dodgeBadge.Size = UDim2.new(0, 68, 0, 18)
-    dodgeBadge.Position = UDim2.new(1, -80, 0, 11)
+    dodgeBadge.Position = UDim2.new(1, -80, 0, 9)
     dodgeBadge.BackgroundColor3 = Color3.fromRGB(65, 195, 255)
     dodgeBadge.Font = Enum.Font.GothamBlack
     dodgeBadge.TextSize = 10
@@ -133,11 +136,113 @@ function HudUI.init()
     dodgeBadge.Parent = statusCard
     createCorner(dodgeBadge, 4)
 
-    local hpFill, hpText = createStatBar(statusCard, "HP", "HP  120 / 120", Color3.fromRGB(220, 56, 64), 36)
-    local mpFill, mpText = createStatBar(statusCard, "MP", "MP  0 / 100", Color3.fromRGB(58, 148, 238), 64)
-    local stamFill, stamText = createStatBar(statusCard, "Stamina", "STA  100 / 100", Color3.fromRGB(238, 184, 48), 92)
+    local hpFill, hpText = createStatBar(statusCard, "HP", "HP  120 / 120", Color3.fromRGB(220, 56, 64), 34, 20)
+    local mpFill, mpText = createStatBar(statusCard, "MP", "MP  0 / 100", Color3.fromRGB(58, 148, 238), 60, 20)
+    local stamFill, stamText =
+        createStatBar(statusCard, "Stamina", "STA  100 / 100", Color3.fromRGB(238, 184, 48), 86, 20)
+    local expFill, expText = createStatBar(statusCard, "EXP", "EXP  0 / 100", Color3.fromRGB(124, 218, 92), 114, 18)
 
-    -- 2. Center Voxel Crosshair
+    -- 2. Top-Right Class Trial / Quest Tracker Card
+    local questCard = Instance.new("Frame")
+    questCard.Name = "QuestCard"
+    questCard.Size = UDim2.new(0, 310, 0, 86)
+    questCard.AnchorPoint = Vector2.new(1, 0)
+    questCard.Position = UDim2.new(1, -20, 0, 20)
+    questCard.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
+    questCard.BackgroundTransparency = 0.14
+    questCard.BorderSizePixel = 0
+    questCard.Parent = screenGui
+    createCorner(questCard, 6)
+    createStroke(questCard, Color3.fromRGB(215, 175, 72), 1.8)
+
+    local questTitleLabel = Instance.new("TextLabel")
+    questTitleLabel.Size = UDim2.new(1, -20, 0, 20)
+    questTitleLabel.Position = UDim2.new(0, 10, 0, 8)
+    questTitleLabel.BackgroundTransparency = 1
+    questTitleLabel.Font = Enum.Font.GothamBlack
+    questTitleLabel.TextSize = 12
+    questTitleLabel.TextColor3 = Color3.fromRGB(255, 214, 88)
+    questTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    questTitleLabel.Text = "Speak to a Class Master NPC"
+    questTitleLabel.Parent = questCard
+
+    local questDescLabel = Instance.new("TextLabel")
+    questDescLabel.Size = UDim2.new(1, -20, 0, 32)
+    questDescLabel.Position = UDim2.new(0, 10, 0, 28)
+    questDescLabel.BackgroundTransparency = 1
+    questDescLabel.Font = Enum.Font.GothamMedium
+    questDescLabel.TextSize = 11
+    questDescLabel.TextColor3 = Color3.fromRGB(212, 220, 238)
+    questDescLabel.TextWrapped = true
+    questDescLabel.TextXAlignment = Enum.TextXAlignment.Left
+    questDescLabel.TextYAlignment = Enum.TextYAlignment.Top
+    questDescLabel.Text = "Walk North to the Guild Courtyard and press [E] on a Master to start your Class Trial"
+    questDescLabel.Parent = questCard
+
+    local questProgLabel = Instance.new("TextLabel")
+    questProgLabel.Size = UDim2.new(1, -20, 0, 18)
+    questProgLabel.Position = UDim2.new(0, 10, 0, 62)
+    questProgLabel.BackgroundTransparency = 1
+    questProgLabel.Font = Enum.Font.GothamBold
+    questProgLabel.TextSize = 11
+    questProgLabel.TextColor3 = Color3.fromRGB(115, 232, 138)
+    questProgLabel.TextXAlignment = Enum.TextXAlignment.Left
+    questProgLabel.Text = "Tip: Attack Dummies/Slimes with LMB to build MP!"
+    questProgLabel.Parent = questCard
+
+    -- 3. Top-Center Toast Notification Banner
+    local toastBanner = Instance.new("Frame")
+    toastBanner.Name = "ToastBanner"
+    toastBanner.Size = UDim2.new(0, 420, 0, 58)
+    toastBanner.AnchorPoint = Vector2.new(0.5, 0)
+    toastBanner.Position = UDim2.new(0.5, 0, 0, 22)
+    toastBanner.BackgroundColor3 = Color3.fromRGB(18, 22, 32)
+    toastBanner.BackgroundTransparency = 0.06
+    toastBanner.BorderSizePixel = 0
+    toastBanner.Visible = false
+    toastBanner.Parent = screenGui
+    createCorner(toastBanner, 8)
+    local toastStroke = createStroke(toastBanner, Color3.fromRGB(255, 208, 74), 2)
+
+    local toastTitle = Instance.new("TextLabel")
+    toastTitle.Size = UDim2.new(1, -20, 0, 22)
+    toastTitle.Position = UDim2.new(0, 10, 0, 6)
+    toastTitle.BackgroundTransparency = 1
+    toastTitle.Font = Enum.Font.GothamBlack
+    toastTitle.TextSize = 14
+    toastTitle.TextColor3 = Color3.fromRGB(255, 218, 92)
+    toastTitle.Text = ""
+    toastTitle.Parent = toastBanner
+
+    local toastSub = Instance.new("TextLabel")
+    toastSub.Size = UDim2.new(1, -20, 0, 20)
+    toastSub.Position = UDim2.new(0, 10, 0, 30)
+    toastSub.BackgroundTransparency = 1
+    toastSub.Font = Enum.Font.GothamMedium
+    toastSub.TextSize = 12
+    toastSub.TextColor3 = Color3.fromRGB(230, 236, 248)
+    toastSub.Text = ""
+    toastSub.Parent = toastBanner
+
+    local toastToken = 0
+    Network.getEvent("QuestNotification").OnClientEvent
+        :Connect(function(title: string, message: string, accentColor: Color3)
+            toastToken += 1
+            local myToken = toastToken
+            toastTitle.Text = title
+            toastTitle.TextColor3 = accentColor
+            toastSub.Text = message
+            toastStroke.Color = accentColor
+            toastBanner.Visible = true
+
+            task.delay(4.2, function()
+                if toastToken == myToken then
+                    toastBanner.Visible = false
+                end
+            end)
+        end)
+
+    -- 4. Center Voxel Crosshair
     local crosshair = Instance.new("Frame")
     crosshair.Name = "Crosshair"
     crosshair.Size = UDim2.new(0, 6, 0, 6)
@@ -150,36 +255,46 @@ function HudUI.init()
     createCorner(crosshair, 2)
     createStroke(crosshair, Color3.fromRGB(20, 24, 32), 1)
 
-    -- 3. Bottom Controls & Customization Toggle Bar
+    -- 5. Bottom Combat Action Bar & Controls
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomHints"
-    bottomBar.Size = UDim2.new(0, 640, 0, 34)
+    bottomBar.Size = UDim2.new(0, 760, 0, 54)
     bottomBar.AnchorPoint = Vector2.new(0.5, 1)
-    bottomBar.Position = UDim2.new(0.5, 0, 1, -16)
+    bottomBar.Position = UDim2.new(0.5, 0, 1, -14)
     bottomBar.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
-    bottomBar.BackgroundTransparency = 0.18
+    bottomBar.BackgroundTransparency = 0.14
     bottomBar.BorderSizePixel = 0
     bottomBar.Parent = screenGui
     createCorner(bottomBar, 6)
     createStroke(bottomBar, Color3.fromRGB(68, 78, 102), 1.5)
 
+    local combatInfoText = Instance.new("TextLabel")
+    combatInfoText.Size = UDim2.new(1, -16, 0, 24)
+    combatInfoText.Position = UDim2.new(0, 8, 0, 4)
+    combatInfoText.BackgroundTransparency = 1
+    combatInfoText.Font = Enum.Font.GothamBlack
+    combatInfoText.TextSize = 12
+    combatInfoText.TextColor3 = Color3.fromRGB(255, 216, 102)
+    combatInfoText.Text = "[LMB] Combo Attack (+MP)   |   [RMB / F] Special Attack (35 MP)"
+    combatInfoText.Parent = bottomBar
+
     local hintsText = Instance.new("TextLabel")
-    hintsText.Size = UDim2.new(1, -16, 1, 0)
-    hintsText.Position = UDim2.new(0, 8, 0, 0)
+    hintsText.Size = UDim2.new(1, -16, 0, 20)
+    hintsText.Position = UDim2.new(0, 8, 0, 28)
     hintsText.BackgroundTransparency = 1
     hintsText.Font = Enum.Font.GothamBold
-    hintsText.TextSize = 12
-    hintsText.TextColor3 = Color3.fromRGB(220, 228, 242)
+    hintsText.TextSize = 11
+    hintsText.TextColor3 = Color3.fromRGB(198, 208, 228)
     hintsText.Text =
-        "[Shift] Sprint   |   [Q / Ctrl] Dodge Roll   |   [C] Appearance & Outfit   |   [Alt / V] Mouse Cursor"
+        "[Shift] Sprint   |   [Q / Ctrl] Dodge Roll   |   [E] Talk to Class Master   |   [C] Appearance & Outfit   |   [Alt / V] Cursor"
     hintsText.Parent = bottomBar
 
-    -- 4. Character Appearance & Starter Outfit Customizer Panel ([C])
+    -- 6. Character Appearance & Starter Outfit Customizer Panel ([C])
     local customPanel = Instance.new("Frame")
     customPanel.Name = "CustomizerPanel"
     customPanel.Size = UDim2.new(0, 340, 0, 310)
     customPanel.AnchorPoint = Vector2.new(1, 0.5)
-    customPanel.Position = UDim2.new(1, -24, 0.5, 0)
+    customPanel.Position = UDim2.new(1, -24, 0.5, 20)
     customPanel.BackgroundColor3 = Color3.fromRGB(18, 21, 30)
     customPanel.BackgroundTransparency = 0.06
     customPanel.BorderSizePixel = 0
@@ -359,22 +474,50 @@ function HudUI.init()
         local stamina = (localPlayer:GetAttribute("Stamina") :: number?) or GameConfig.Stamina.MaxStamina
         local maxStamina = (localPlayer:GetAttribute("MaxStamina") :: number?) or GameConfig.Stamina.MaxStamina
         local level = (localPlayer:GetAttribute("Level") :: number?) or 1
+        local exp = (localPlayer:GetAttribute("Exp") :: number?) or 0
+        local maxExp = (localPlayer:GetAttribute("MaxExp") :: number?) or 100
+        local gold = (localPlayer:GetAttribute("Gold") :: number?) or 0
         local jobClass = (localPlayer:GetAttribute("JobClass") :: string?) or "Novice"
         local isDodging = localPlayer:GetAttribute("IsDodging") == true
 
         local classEntry = CharacterConfig.JobClasses[jobClass] or CharacterConfig.JobClasses.Novice
-        headerLabel.Text = string.format("BLOXCUBE  |  LV. %d  [%s]", level, classEntry.DisplayName)
+        local combatSpec = CombatConfig.Classes[jobClass] or CombatConfig.Classes.Novice
+
+        headerLabel.Text = string.format("LV. %d  [%s]   |   Gold: %d", level, classEntry.DisplayName, gold)
         dodgeBadge.Visible = isDodging
         crosshair.Visible = CameraController.isMouseLocked()
+
+        combatInfoText.Text = string.format(
+            "[LMB] %s (+%d MP)   |   [RMB / F] %s (%d MP)",
+            combatSpec.WeaponName,
+            combatSpec.MPGainPerHit,
+            combatSpec.SpecialName,
+            combatSpec.SpecialMPCost
+        )
+
+        local qTitle = (localPlayer:GetAttribute("QuestTitle") :: string?) or "Speak to a Class Master NPC"
+        local qDesc = (localPlayer:GetAttribute("QuestDesc") :: string?) or ""
+        local qProg = (localPlayer:GetAttribute("QuestProgress") :: number?) or 0
+        local qReq = (localPlayer:GetAttribute("QuestRequired") :: number?) or 0
+
+        questTitleLabel.Text = qTitle
+        questDescLabel.Text = qDesc
+        if qReq > 0 then
+            questProgLabel.Text = string.format("Trial Progress:  %d / %d", qProg, qReq)
+        else
+            questProgLabel.Text = "Tip: Attack Dummies/Slimes (South) or Talk to Masters (North)"
+        end
 
         local hpRatio = math.clamp(hp / math.max(1, maxHp), 0, 1)
         local mpRatio = math.clamp(mp / math.max(1, maxMp), 0, 1)
         local stamRatio = math.clamp(stamina / math.max(1, maxStamina), 0, 1)
+        local expRatio = math.clamp(exp / math.max(1, maxExp), 0, 1)
 
         local lerpFactor = math.min(1, dt * 18)
         hpFill.Size = hpFill.Size:Lerp(UDim2.new(hpRatio, 0, 1, 0), lerpFactor)
         mpFill.Size = mpFill.Size:Lerp(UDim2.new(mpRatio, 0, 1, 0), lerpFactor)
         stamFill.Size = stamFill.Size:Lerp(UDim2.new(stamRatio, 0, 1, 0), lerpFactor)
+        expFill.Size = expFill.Size:Lerp(UDim2.new(expRatio, 0, 1, 0), lerpFactor)
 
         if stamina < GameConfig.Stamina.DodgeCost then
             stamFill.BackgroundColor3 = Color3.fromRGB(225, 96, 48)
@@ -385,6 +528,7 @@ function HudUI.init()
         hpText.Text = string.format("HP   %d / %d", math.floor(hp + 0.5), maxHp)
         mpText.Text = string.format("MP   %d / %d", math.floor(mp + 0.5), maxMp)
         stamText.Text = string.format("STA  %d / %d", math.floor(stamina + 0.5), maxStamina)
+        expText.Text = string.format("EXP  %d / %d", math.floor(exp + 0.5), maxExp)
     end)
 end
 

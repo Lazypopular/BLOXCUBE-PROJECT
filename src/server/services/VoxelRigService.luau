@@ -1,8 +1,8 @@
 --!strict
--- VoxelRigService: Builds and updates the 3-Layer Modular Voxel Character Rig (Server-Side)
+-- VoxelRigService: Builds and updates the 3-Layer Modular Voxel Character Rig + Held Voxel Weapons (Server-Side)
 -- Layer 1: Base Voxel Body & Joints
 -- Layer 2: Player Customizable Appearance (Skin, Face/Eyes, Hair Style & Color)
--- Layer 3: Starter Outfit (Novice Civilian Clothing) + Future Class Costume Overlay
+-- Layer 3: Starter Outfit (Novice Civilian Clothing) or Class Costume + Held Voxel Weapon
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -324,6 +324,201 @@ local function buildAppearanceLayer(rigModel: Model, appearance: AppearanceData)
     end
 end
 
+local function buildWeaponInHands(rigModel: Model, jobClassName: string, layer: Instance)
+    local leftArm = rigModel:FindFirstChild("VoxelLeftArm") :: BasePart?
+    local rightArm = rigModel:FindFirstChild("VoxelRightArm") :: BasePart?
+    if not (leftArm and rightArm) then
+        return
+    end
+
+    if jobClassName == "Novice" then
+        -- Voxel Wooden Training Sword in Right Hand
+        local woodDark = Color3.fromRGB(115, 76, 44)
+        local woodLight = Color3.fromRGB(186, 138, 86)
+        attachVoxelBlock(
+            "SwordGrip",
+            Vector3.new(0.24, 0.24, 0.85),
+            woodDark,
+            rightArm,
+            CFrame.new(0, -0.68, -0.2),
+            layer
+        )
+        attachVoxelBlock(
+            "SwordGuard",
+            Vector3.new(0.75, 0.26, 0.24),
+            woodDark,
+            rightArm,
+            CFrame.new(0, -0.68, -0.62),
+            layer
+        )
+        attachVoxelBlock(
+            "SwordBlade",
+            Vector3.new(0.32, 0.18, 2.15),
+            woodLight,
+            rightArm,
+            CFrame.new(0, -0.68, -1.78),
+            layer
+        )
+    elseif jobClassName == "Warrior" then
+        -- Voxel Iron Greatsword in Right Hand
+        local hiltColor = Color3.fromRGB(92, 54, 36)
+        local goldColor = Color3.fromRGB(238, 188, 64)
+        local bladeSteel = Color3.fromRGB(218, 226, 238)
+        attachVoxelBlock(
+            "GreatswordGrip",
+            Vector3.new(0.26, 0.26, 1.05),
+            hiltColor,
+            rightArm,
+            CFrame.new(0, -0.68, -0.15),
+            layer
+        )
+        attachVoxelBlock(
+            "GreatswordCrossguard",
+            Vector3.new(1.15, 0.32, 0.28),
+            goldColor,
+            rightArm,
+            CFrame.new(0, -0.68, -0.72),
+            layer,
+            Enum.Material.Metal
+        )
+        attachVoxelBlock(
+            "GreatswordBlade",
+            Vector3.new(0.52, 0.2, 2.85),
+            bladeSteel,
+            rightArm,
+            CFrame.new(0, -0.68, -2.22),
+            layer,
+            Enum.Material.Metal
+        )
+        attachVoxelBlock(
+            "GreatswordCore",
+            Vector3.new(0.22, 0.24, 2.2),
+            Color3.fromRGB(178, 52, 48),
+            rightArm,
+            CFrame.new(0, -0.68, -2.0),
+            layer
+        )
+    elseif jobClassName == "Ranger" then
+        -- Voxel Hunter Bow in Left Hand
+        local bowWood = Color3.fromRGB(134, 86, 46)
+        local bowTrim = Color3.fromRGB(64, 152, 76)
+        local bowString = Color3.fromRGB(235, 240, 245)
+        attachVoxelBlock("BowGrip", Vector3.new(0.26, 0.95, 0.28), bowTrim, leftArm, CFrame.new(0, -0.68, -0.55), layer)
+        attachVoxelBlock(
+            "BowLimbUpper",
+            Vector3.new(0.24, 1.15, 0.24),
+            bowWood,
+            leftArm,
+            CFrame.new(0, 0.18, -0.35) * CFrame.Angles(math.rad(24), 0, 0),
+            layer
+        )
+        attachVoxelBlock(
+            "BowLimbLower",
+            Vector3.new(0.24, 1.15, 0.24),
+            bowWood,
+            leftArm,
+            CFrame.new(0, -1.54, -0.35) * CFrame.Angles(math.rad(-24), 0, 0),
+            layer
+        )
+        attachVoxelBlock(
+            "BowString",
+            Vector3.new(0.08, 2.45, 0.08),
+            bowString,
+            leftArm,
+            CFrame.new(0, -0.68, -0.12),
+            layer
+        )
+    elseif jobClassName == "Mage" then
+        -- Voxel Arcane Crystal Staff in Right Hand
+        local staffWood = Color3.fromRGB(108, 68, 42)
+        local staffGold = Color3.fromRGB(235, 192, 78)
+        local crystalCyan = Color3.fromRGB(98, 224, 255)
+        attachVoxelBlock(
+            "StaffShaft",
+            Vector3.new(0.24, 0.24, 3.2),
+            staffWood,
+            rightArm,
+            CFrame.new(0, -0.68, -0.95),
+            layer
+        )
+        attachVoxelBlock(
+            "StaffCrown",
+            Vector3.new(0.56, 0.42, 0.36),
+            staffGold,
+            rightArm,
+            CFrame.new(0, -0.68, -2.58),
+            layer,
+            Enum.Material.Metal
+        )
+        attachVoxelBlock(
+            "StaffCrystal",
+            Vector3.new(0.46, 0.46, 0.46),
+            crystalCyan,
+            rightArm,
+            CFrame.new(0, -0.68, -2.98) * CFrame.Angles(math.rad(45), math.rad(45), 0),
+            layer,
+            Enum.Material.Neon
+        )
+    elseif jobClassName == "Rogue" then
+        -- Twin Voxel Daggers in Both Hands
+        local gripDark = Color3.fromRGB(42, 44, 54)
+        local guardCrimson = Color3.fromRGB(185, 42, 68)
+        local bladeSteel = Color3.fromRGB(210, 218, 232)
+
+        attachVoxelBlock(
+            "RightDaggerGrip",
+            Vector3.new(0.22, 0.22, 0.65),
+            gripDark,
+            rightArm,
+            CFrame.new(0, -0.68, -0.15),
+            layer
+        )
+        attachVoxelBlock(
+            "RightDaggerGuard",
+            Vector3.new(0.58, 0.22, 0.2),
+            guardCrimson,
+            rightArm,
+            CFrame.new(0, -0.68, -0.48),
+            layer
+        )
+        attachVoxelBlock(
+            "RightDaggerBlade",
+            Vector3.new(0.26, 0.14, 1.45),
+            bladeSteel,
+            rightArm,
+            CFrame.new(0, -0.68, -1.25),
+            layer,
+            Enum.Material.Metal
+        )
+
+        attachVoxelBlock(
+            "LeftDaggerGrip",
+            Vector3.new(0.22, 0.22, 0.65),
+            gripDark,
+            leftArm,
+            CFrame.new(0, -0.68, -0.15),
+            layer
+        )
+        attachVoxelBlock(
+            "LeftDaggerGuard",
+            Vector3.new(0.58, 0.22, 0.2),
+            guardCrimson,
+            leftArm,
+            CFrame.new(0, -0.68, -0.48),
+            layer
+        )
+        attachVoxelBlock(
+            "LeftDaggerBlade",
+            Vector3.new(0.26, 0.14, 1.45),
+            bladeSteel,
+            leftArm,
+            CFrame.new(0, -0.68, -1.25),
+            layer,
+            Enum.Material.Metal
+        )
+    end
+end
+
 local function buildCostumeLayer(rigModel: Model, appearance: AppearanceData, jobClassName: string)
     local existingLayer = rigModel:FindFirstChild("CostumeLayer")
     if existingLayer then
@@ -345,7 +540,9 @@ local function buildCostumeLayer(rigModel: Model, appearance: AppearanceData, jo
         return
     end
 
-    -- 1. If the player is a Novice (Civilian / Starting Adventurer), render their chosen Starter Outfit
+    -- Attach Held 3D Voxel Weapon in Hands
+    buildWeaponInHands(rigModel, jobClassName, layer)
+
     if jobClassName == "Novice" then
         local outfit = CharacterConfig.StarterOutfits[appearance.OutfitStyle]
             or CharacterConfig.StarterOutfits.TravelerVest
@@ -469,7 +666,6 @@ local function buildCostumeLayer(rigModel: Model, appearance: AppearanceData, jo
         return
     end
 
-    -- 2. If promoted via Class Master NPC Quest, render the Class Costume Layer
     local costume = CharacterConfig.JobClasses[jobClassName] or CharacterConfig.JobClasses.Novice
     local primary = costume.PrimaryColor
     local secondary = costume.SecondaryColor
@@ -524,23 +720,6 @@ local function buildCostumeLayer(rigModel: Model, appearance: AppearanceData, jo
             layer
         )
         attachVoxelBlock("WarriorHeadband", Vector3.new(2.18, 0.24, 2.12), accent, head, CFrame.new(0, 0.54, 0), layer)
-        attachVoxelBlock(
-            "GreatswordBlade",
-            Vector3.new(0.45, 2.6, 0.16),
-            Color3.fromRGB(215, 222, 235),
-            torso,
-            CFrame.new(0, 0.2, 0.82) * CFrame.Angles(0, 0, math.rad(28)),
-            layer,
-            Enum.Material.Metal
-        )
-        attachVoxelBlock(
-            "GreatswordGuard",
-            Vector3.new(1.1, 0.24, 0.26),
-            accent,
-            torso,
-            CFrame.new(-0.48, -0.72, 0.82) * CFrame.Angles(0, 0, math.rad(28)),
-            layer
-        )
     elseif jobClassName == "Ranger" then
         attachVoxelBlock(
             "RangerStrap",
@@ -603,23 +782,6 @@ local function buildCostumeLayer(rigModel: Model, appearance: AppearanceData, jo
             layer,
             Enum.Material.Neon
         )
-        attachVoxelBlock(
-            "MageStaffShaft",
-            Vector3.new(0.24, 2.9, 0.24),
-            Color3.fromRGB(115, 74, 44),
-            torso,
-            CFrame.new(-0.2, 0.3, 0.78) * CFrame.Angles(0, 0, math.rad(-22)),
-            layer
-        )
-        attachVoxelBlock(
-            "MageStaffCrystal",
-            Vector3.new(0.48, 0.48, 0.48),
-            accent,
-            torso,
-            CFrame.new(0.42, 1.65, 0.78),
-            layer,
-            Enum.Material.Neon
-        )
     elseif jobClassName == "Rogue" then
         attachVoxelBlock("RogueScarf", Vector3.new(2.16, 0.55, 2.12), secondary, head, CFrame.new(0, -0.68, 0), layer)
         attachVoxelBlock(
@@ -629,24 +791,6 @@ local function buildCostumeLayer(rigModel: Model, appearance: AppearanceData, jo
             torso,
             CFrame.new(0.45, 0.32, 0.68),
             layer
-        )
-        attachVoxelBlock(
-            "LeftDagger",
-            Vector3.new(0.22, 0.26, 1.35),
-            accent,
-            torso,
-            CFrame.new(-1.02, -0.52, 0.1),
-            layer,
-            Enum.Material.Metal
-        )
-        attachVoxelBlock(
-            "RightDagger",
-            Vector3.new(0.22, 0.26, 1.35),
-            accent,
-            torso,
-            CFrame.new(1.02, -0.52, 0.1),
-            layer,
-            Enum.Material.Metal
         )
     end
 end
