@@ -10,6 +10,7 @@ local CharacterConfig = require(ReplicatedStorage.configs.CharacterConfig)
 local CombatConfig = require(ReplicatedStorage.configs.CombatConfig)
 local GameConfig = require(ReplicatedStorage.configs.GameConfig)
 local ItemConfig = require(ReplicatedStorage.configs.ItemConfig)
+local PetConfig = require(ReplicatedStorage.configs.PetConfig)
 local Network = require(ReplicatedStorage.network)
 local CameraController = require(script.Parent.Parent.controllers.CameraController)
 
@@ -289,7 +290,7 @@ function HudUI.init()
     hintsText.TextSize = 11
     hintsText.TextColor3 = Color3.fromRGB(198, 208, 228)
     hintsText.Text =
-        "[Shift] Sprint  |  [Q / Ctrl] Dodge  |  [E] Interact  |  [I] Spirit Forge & Bag  |  [C] Appearance  |  [Alt / V] Cursor"
+        "[Shift] Sprint | [Q] Dodge | [T] Ride Mount | [G] Hang Glider | [P] Pets | [I] Forge & Bag | [C] Appearance | [V] Cursor"
     hintsText.Parent = bottomBar
 
     -- 6. Character Appearance & Starter Outfit Customizer Panel ([C])
@@ -650,14 +651,130 @@ function HudUI.init()
             refreshBagUI(items, equippedItem)
         end)
 
+    -- 8. Cube World Voxel Pets & Mounts Panel ([P])
+    local petPanel = Instance.new("Frame")
+    petPanel.Name = "PetPanel"
+    petPanel.Size = UDim2.new(0, 390, 0, 315)
+    petPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+    petPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
+    petPanel.BackgroundColor3 = Color3.fromRGB(16, 19, 28)
+    petPanel.BackgroundTransparency = 0.04
+    petPanel.BorderSizePixel = 0
+    petPanel.Visible = false
+    petPanel.Parent = screenGui
+    createCorner(petPanel, 8)
+    createStroke(petPanel, Color3.fromRGB(128, 235, 165), 2)
+
+    local petHeader = Instance.new("TextLabel")
+    petHeader.Size = UDim2.new(1, -60, 0, 24)
+    petHeader.Position = UDim2.new(0, 14, 0, 10)
+    petHeader.BackgroundTransparency = 1
+    petHeader.Font = Enum.Font.GothamBlack
+    petHeader.TextSize = 14
+    petHeader.TextColor3 = Color3.fromRGB(128, 235, 165)
+    petHeader.TextXAlignment = Enum.TextXAlignment.Left
+    petHeader.Text = "🐾 VOXEL COMPANIONS & MOUNTS [P]"
+    petHeader.Parent = petPanel
+
+    local closePetBtn = Instance.new("TextButton")
+    closePetBtn.Size = UDim2.new(0, 28, 0, 26)
+    closePetBtn.Position = UDim2.new(1, -38, 0, 10)
+    closePetBtn.BackgroundColor3 = Color3.fromRGB(185, 58, 68)
+    closePetBtn.Font = Enum.Font.GothamBlack
+    closePetBtn.TextSize = 12
+    closePetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closePetBtn.Text = "X"
+    closePetBtn.Parent = petPanel
+    createCorner(closePetBtn, 4)
+
+    local petSub = Instance.new("TextLabel")
+    petSub.Size = UDim2.new(1, -28, 0, 18)
+    petSub.Position = UDim2.new(0, 14, 0, 34)
+    petSub.BackgroundTransparency = 1
+    petSub.Font = Enum.Font.GothamMedium
+    petSub.TextSize = 11
+    petSub.TextColor3 = Color3.fromRGB(190, 205, 228)
+    petSub.TextXAlignment = Enum.TextXAlignment.Left
+    petSub.Text = "Companions fight beside you! Press [T] to Ride or [G] to Glide."
+    petSub.Parent = petPanel
+
+    local petButtons: { [string]: TextButton } = {}
+    for idx, petKey in PetConfig.PetOrder do
+        local pSpec = PetConfig.Pets[petKey]
+        local rowY = 58 + (idx - 1) * 48
+
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, -28, 0, 42)
+        row.Position = UDim2.new(0, 14, 0, rowY)
+        row.BackgroundColor3 = Color3.fromRGB(24, 28, 40)
+        row.BorderSizePixel = 0
+        row.Parent = petPanel
+        createCorner(row, 6)
+        createStroke(row, pSpec.BodyColor, 1)
+
+        local nameLbl = Instance.new("TextLabel")
+        nameLbl.Size = UDim2.new(1, -110, 0, 20)
+        nameLbl.Position = UDim2.new(0, 10, 0, 3)
+        nameLbl.BackgroundTransparency = 1
+        nameLbl.Font = Enum.Font.GothamBlack
+        nameLbl.TextSize = 12
+        nameLbl.TextColor3 = pSpec.BodyColor
+        nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+        nameLbl.Text = string.format("%s (DMG: %d)", pSpec.Name, pSpec.CombatDamage)
+        nameLbl.Parent = row
+
+        local descLbl = Instance.new("TextLabel")
+        descLbl.Size = UDim2.new(1, -110, 0, 16)
+        descLbl.Position = UDim2.new(0, 10, 0, 22)
+        descLbl.BackgroundTransparency = 1
+        descLbl.Font = Enum.Font.GothamBold
+        descLbl.TextSize = 10
+        descLbl.TextColor3 = Color3.fromRGB(205, 215, 232)
+        descLbl.TextXAlignment = Enum.TextXAlignment.Left
+        descLbl.Text = pSpec.Description
+        descLbl.Parent = row
+
+        local actionBtn = Instance.new("TextButton")
+        actionBtn.Size = UDim2.new(0, 92, 0, 28)
+        actionBtn.Position = UDim2.new(1, -98, 0.5, -14)
+        actionBtn.BackgroundColor3 = Color3.fromRGB(48, 98, 142)
+        actionBtn.Font = Enum.Font.GothamBlack
+        actionBtn.TextSize = 10
+        actionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        actionBtn.Text = "SUMMON"
+        actionBtn.Parent = row
+        createCorner(actionBtn, 4)
+        petButtons[petKey] = actionBtn
+
+        actionBtn.MouseButton1Click:Connect(function()
+            Network.getEvent("RequestSelectPet"):FireServer(petKey)
+        end)
+    end
+
+    local mountToggleBtn = Instance.new("TextButton")
+    mountToggleBtn.Size = UDim2.new(1, -28, 0, 34)
+    mountToggleBtn.Position = UDim2.new(0, 14, 0, 262)
+    mountToggleBtn.BackgroundColor3 = Color3.fromRGB(52, 142, 88)
+    mountToggleBtn.Font = Enum.Font.GothamBlack
+    mountToggleBtn.TextSize = 12
+    mountToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    mountToggleBtn.Text = "🐎 [T] Toggle Mount Riding   |   🪂 [G] Deploy Voxel Hang Glider"
+    mountToggleBtn.Parent = petPanel
+    createCorner(mountToggleBtn, 5)
+
+    mountToggleBtn.MouseButton1Click:Connect(function()
+        Network.getEvent("RequestToggleMount"):FireServer()
+    end)
+
     local function syncUIPanelCursorState()
-        CameraController.setUIPanelOpen(customPanel.Visible or forgePanel.Visible)
+        CameraController.setUIPanelOpen(customPanel.Visible or forgePanel.Visible or petPanel.Visible)
     end
 
     local function toggleCustomPanel()
         customPanel.Visible = not customPanel.Visible
         if customPanel.Visible then
             forgePanel.Visible = false
+            petPanel.Visible = false
         end
         syncUIPanelCursorState()
     end
@@ -670,12 +787,30 @@ function HudUI.init()
         end
         if forgePanel.Visible then
             customPanel.Visible = false
+            petPanel.Visible = false
+        end
+        syncUIPanelCursorState()
+    end
+
+    local function togglePetPanel(forceOpen: boolean?)
+        if forceOpen ~= nil then
+            petPanel.Visible = forceOpen
+        else
+            petPanel.Visible = not petPanel.Visible
+        end
+        if petPanel.Visible then
+            customPanel.Visible = false
+            forgePanel.Visible = false
         end
         syncUIPanelCursorState()
     end
 
     closeForgeBtn.MouseButton1Click:Connect(function()
         toggleForgePanel(false)
+    end)
+
+    closePetBtn.MouseButton1Click:Connect(function()
+        togglePetPanel(false)
     end)
 
     Network.getEvent("OpenForgeUI").OnClientEvent:Connect(function()
@@ -690,6 +825,8 @@ function HudUI.init()
             toggleCustomPanel()
         elseif input.KeyCode == Enum.KeyCode.I or input.KeyCode == Enum.KeyCode.B then
             toggleForgePanel()
+        elseif input.KeyCode == Enum.KeyCode.P then
+            togglePetPanel()
         end
     end)
 
@@ -749,6 +886,25 @@ function HudUI.init()
             local lbl = cubeCountLabels[cubeKey]
             if lbl then
                 lbl.Text = string.format("❖ %s (%s) — Owned: x%d", spec.ShortName, spec.Description, countAttr)
+            end
+        end
+
+        local activePetId = (localPlayer:GetAttribute("ActivePetId") :: string?) or "SlimePet"
+        for _, petKey in PetConfig.PetOrder do
+            local pSpec = PetConfig.Pets[petKey]
+            local owns = localPlayer:GetAttribute("Owns_" .. petKey) == true or pSpec.GoldCost == 0
+            local btn = petButtons[petKey]
+            if btn then
+                if activePetId == petKey then
+                    btn.Text = "ACTIVE"
+                    btn.BackgroundColor3 = Color3.fromRGB(52, 148, 82)
+                elseif owns then
+                    btn.Text = "SUMMON"
+                    btn.BackgroundColor3 = Color3.fromRGB(48, 98, 142)
+                else
+                    btn.Text = string.format("TAME (%dG)", pSpec.GoldCost)
+                    btn.BackgroundColor3 = Color3.fromRGB(168, 118, 42)
+                end
             end
         end
 

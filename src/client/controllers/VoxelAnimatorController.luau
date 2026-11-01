@@ -200,6 +200,13 @@ local function animateCharacter(character: Model, dt: number, now: number)
         rArmGoal = rShoulderBase * CFrame.Angles(-armSway, 0, math.rad(5))
     end
 
+    if character:GetAttribute("IsGliding") == true then
+        lArmGoal = lShoulderBase * CFrame.Angles(math.rad(165), 0, math.rad(-14))
+        rArmGoal = rShoulderBase * CFrame.Angles(math.rad(165), 0, math.rad(14))
+        lFootGoal = lHipBase * CFrame.Angles(math.rad(-18), 0, 0)
+        rFootGoal = rHipBase * CFrame.Angles(math.rad(-18), 0, 0)
+    end
+
     -- Overlay Procedural Weapon Swing Pose during Active Attack
     local attackElapsed = now - state.AttackStartTime
     local attackDuration = if state.AttackKind == "RMB" then 0.36 else 0.26

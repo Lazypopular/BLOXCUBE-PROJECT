@@ -17,4 +17,4 @@ CombatController.init()
 VoxelAnimatorController.init()
 HudUI.init()
 
-print("[BLOXCUBE] Client initialized (Phase 3: Action Combat, Spirit Cube Forge, Loot & Voxel HUD).")
+print("[BLOXCUBE] Client initialized (Phase 4: Voxel Pets & Mounts, Hang Glider, Spirit Forge & HUD).")
