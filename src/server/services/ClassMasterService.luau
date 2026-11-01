@@ -35,32 +35,50 @@ local function createNPCBillboard(adornee: BasePart, nameText: string, titleText
     local bb = Instance.new("BillboardGui")
     bb.Name = "MasterBillboard"
     bb.Adornee = adornee
-    bb.Size = UDim2.new(0, 200, 0, 48)
-    bb.StudsOffset = Vector3.new(0, 4.2, 0)
+    bb.Size = UDim2.new(0, 210, 0, 52)
+    bb.StudsOffset = Vector3.new(0, 4.4, 0)
     bb.AlwaysOnTop = false
     bb.MaxDistance = 85
     bb.Parent = adornee
 
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 1, 0)
+    card.BackgroundColor3 = Color3.fromRGB(16, 19, 28)
+    card.BackgroundTransparency = 0.14
+    card.BorderSizePixel = 0
+    card.Parent = bb
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = card
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = accentColor
+    stroke.Thickness = 1.6
+    stroke.Transparency = 0.2
+    stroke.Parent = card
+
     local roleLabel = Instance.new("TextLabel")
-    roleLabel.Size = UDim2.new(1, 0, 0, 18)
+    roleLabel.Size = UDim2.new(1, -12, 0, 18)
+    roleLabel.Position = UDim2.new(0, 6, 0, 5)
     roleLabel.BackgroundTransparency = 1
     roleLabel.Font = Enum.Font.GothamBlack
-    roleLabel.TextSize = 11
+    roleLabel.TextSize = 10
     roleLabel.TextColor3 = accentColor
-    roleLabel.TextStrokeTransparency = 0.2
-    roleLabel.Text = "[" .. string.upper(titleText) .. "]"
-    roleLabel.Parent = bb
+    roleLabel.TextStrokeTransparency = 0.3
+    roleLabel.Text = "◆  " .. string.upper(titleText) .. "  ◆"
+    roleLabel.Parent = card
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 0, 22)
-    nameLabel.Position = UDim2.new(0, 0, 0, 18)
+    nameLabel.Size = UDim2.new(1, -12, 0, 22)
+    nameLabel.Position = UDim2.new(0, 6, 0, 23)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Font = Enum.Font.GothamBlack
-    nameLabel.TextSize = 14
-    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameLabel.TextStrokeTransparency = 0.15
+    nameLabel.Font = Enum.Font.FredokaOne
+    nameLabel.TextSize = 15
+    nameLabel.TextColor3 = Color3.fromRGB(244, 247, 255)
+    nameLabel.TextStrokeTransparency = 0.2
     nameLabel.Text = nameText
-    nameLabel.Parent = bb
+    nameLabel.Parent = card
 end
 
 local function spawnClassMasterNPC(spec: any, parentFolder: Folder)

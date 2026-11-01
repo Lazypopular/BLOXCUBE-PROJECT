@@ -196,21 +196,40 @@ local function buildPetVisuals(
     local bb = Instance.new("BillboardGui")
     bb.Name = "PetTag"
     bb.Adornee = root
-    bb.Size = UDim2.new(0, 140, 0, 26)
-    bb.StudsOffset = Vector3.new(0, 2.2 * s, 0)
+    bb.Size = UDim2.new(0, 152, 0, 28)
+    bb.StudsOffset = Vector3.new(0, 2.3 * s, 0)
     bb.AlwaysOnTop = false
     bb.MaxDistance = 55
     bb.Parent = root
 
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 1, 0)
+    card.BackgroundColor3 = Color3.fromRGB(14, 17, 26)
+    card.BackgroundTransparency = 0.18
+    card.BorderSizePixel = 0
+    card.Parent = bb
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 14)
+    corner.Parent = card
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = spec.BodyColor
+    stroke.Thickness = 1.4
+    stroke.Transparency = 0.25
+    stroke.Parent = card
+
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 1, 0)
+    lbl.Size = UDim2.new(1, -12, 1, 0)
+    lbl.Position = UDim2.new(0, 6, 0, 0)
     lbl.BackgroundTransparency = 1
-    lbl.Font = Enum.Font.GothamBlack
-    lbl.TextSize = 11
-    lbl.TextColor3 = Color3.fromRGB(168, 245, 198)
-    lbl.TextStrokeTransparency = 0.2
+    lbl.Font = Enum.Font.FredokaOne
+    lbl.TextSize = 12
+    lbl.TextColor3 = spec.BodyColor:Lerp(Color3.fromRGB(255, 255, 255), 0.35)
+    lbl.TextStrokeTransparency = 0.25
+    lbl.TextTruncate = Enum.TextTruncate.AtEnd
     lbl.Text = "🐾 " .. spec.Name
-    lbl.Parent = bb
+    lbl.Parent = card
 
     model.Parent = parentFolder
     return model, root

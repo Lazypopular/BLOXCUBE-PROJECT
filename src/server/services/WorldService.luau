@@ -37,32 +37,52 @@ local function createStationBillboard(adornee: BasePart, titleText: string, subT
     local bb = Instance.new("BillboardGui")
     bb.Name = "StationBillboard"
     bb.Adornee = adornee
-    bb.Size = UDim2.new(0, 210, 0, 44)
-    bb.StudsOffset = Vector3.new(0, 3.8, 0)
+    bb.Size = UDim2.new(0, 224, 0, 50)
+    bb.StudsOffset = Vector3.new(0, 4.0, 0)
     bb.AlwaysOnTop = false
     bb.MaxDistance = 65
     bb.Parent = adornee
 
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 1, 0)
+    card.BackgroundColor3 = Color3.fromRGB(16, 19, 28)
+    card.BackgroundTransparency = 0.14
+    card.BorderSizePixel = 0
+    card.Parent = bb
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = card
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = accentColor
+    stroke.Thickness = 1.6
+    stroke.Transparency = 0.2
+    stroke.Parent = card
+
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 22)
+    title.Size = UDim2.new(1, -12, 0, 22)
+    title.Position = UDim2.new(0, 6, 0, 5)
     title.BackgroundTransparency = 1
-    title.Font = Enum.Font.GothamBlack
-    title.TextSize = 13
+    title.Font = Enum.Font.FredokaOne
+    title.TextSize = 14
     title.TextColor3 = accentColor
     title.TextStrokeTransparency = 0.2
+    title.TextTruncate = Enum.TextTruncate.AtEnd
     title.Text = titleText
-    title.Parent = bb
+    title.Parent = card
 
     local sub = Instance.new("TextLabel")
-    sub.Size = UDim2.new(1, 0, 0, 18)
-    sub.Position = UDim2.new(0, 0, 0, 21)
+    sub.Size = UDim2.new(1, -12, 0, 16)
+    sub.Position = UDim2.new(0, 6, 0, 27)
     sub.BackgroundTransparency = 1
     sub.Font = Enum.Font.GothamBold
-    sub.TextSize = 11
-    sub.TextColor3 = Color3.fromRGB(235, 240, 250)
-    sub.TextStrokeTransparency = 0.25
+    sub.TextSize = 10
+    sub.TextColor3 = Color3.fromRGB(224, 232, 248)
+    sub.TextStrokeTransparency = 0.3
+    sub.TextTruncate = Enum.TextTruncate.AtEnd
     sub.Text = subText
-    sub.Parent = bb
+    sub.Parent = card
 end
 
 local function buildVoxelTree(origin: Vector3, scale: number, leafColor: Color3, parent: Instance)
