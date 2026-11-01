@@ -195,32 +195,52 @@ local function createDropVisual(
     local bb = Instance.new("BillboardGui")
     bb.Name = "LootBillboard"
     bb.Adornee = root
-    bb.Size = UDim2.new(0, 190, 0, 40)
-    bb.StudsOffset = Vector3.new(0, 2.2, 0)
+    bb.Size = UDim2.new(0, 200, 0, 44)
+    bb.StudsOffset = Vector3.new(0, 2.4, 0)
     bb.AlwaysOnTop = true
     bb.MaxDistance = 55
     bb.Parent = root
 
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 1, 0)
+    card.BackgroundColor3 = Color3.fromRGB(14, 16, 24)
+    card.BackgroundTransparency = 0.15
+    card.BorderSizePixel = 0
+    card.Parent = bb
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 7)
+    corner.Parent = card
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = accentColor
+    stroke.Thickness = 1.5
+    stroke.Transparency = 0.2
+    stroke.Parent = card
+
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 20)
+    title.Size = UDim2.new(1, -12, 0, 20)
+    title.Position = UDim2.new(0, 6, 0, 4)
     title.BackgroundTransparency = 1
-    title.Font = Enum.Font.GothamBlack
-    title.TextSize = 12
+    title.Font = Enum.Font.FredokaOne
+    title.TextSize = 13
     title.TextColor3 = accentColor
-    title.TextStrokeTransparency = 0.15
+    title.TextStrokeTransparency = 0.2
+    title.TextTruncate = Enum.TextTruncate.AtEnd
     title.Text = titleText
-    title.Parent = bb
+    title.Parent = card
 
     local sub = Instance.new("TextLabel")
-    sub.Size = UDim2.new(1, 0, 0, 16)
-    sub.Position = UDim2.new(0, 0, 0, 19)
+    sub.Size = UDim2.new(1, -12, 0, 16)
+    sub.Position = UDim2.new(0, 6, 0, 23)
     sub.BackgroundTransparency = 1
     sub.Font = Enum.Font.GothamBold
     sub.TextSize = 10
-    sub.TextColor3 = Color3.fromRGB(235, 240, 252)
-    sub.TextStrokeTransparency = 0.25
+    sub.TextColor3 = Color3.fromRGB(220, 228, 245)
+    sub.TextStrokeTransparency = 0.3
+    sub.TextTruncate = Enum.TextTruncate.AtEnd
     sub.Text = subText
-    sub.Parent = bb
+    sub.Parent = card
 
     model.Parent = parentFolder
     return model, root
