@@ -23,6 +23,9 @@ local EVENT_NAMES = {
     "RequestBuyPotion",
     "InventorySynced",
     "OpenForgeUI",
+    "RequestSelectPet",
+    "RequestToggleMount",
+    "RequestToggleGlider",
 }
 
 local Network = {}

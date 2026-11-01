@@ -917,4 +917,100 @@ function VoxelRigService.updateAppearanceAndCostume(character: Model, appearance
     buildCostumeLayer(rigModel, appearance, activeClass)
 end
 
+function VoxelRigService.setGliderVisible(character: Model, isGliding: boolean)
+    local rigModel = character:FindFirstChild("VoxelRig")
+    if not rigModel or not rigModel:IsA("Model") then
+        return
+    end
+
+    local existingGlider = rigModel:FindFirstChild("GliderLayer")
+    if existingGlider then
+        existingGlider:Destroy()
+    end
+
+    if not isGliding then
+        return
+    end
+
+    local torso = rigModel:FindFirstChild("VoxelTorso") :: BasePart?
+    if not torso then
+        return
+    end
+
+    local gliderFolder = Instance.new("Folder")
+    gliderFolder.Name = "GliderLayer"
+    gliderFolder.Parent = rigModel
+
+    local woodColor = Color3.fromRGB(138, 88, 46)
+    local sailCream = Color3.fromRGB(245, 238, 215)
+    local sailRed = Color3.fromRGB(228, 78, 64)
+
+    -- Cube World Style Overhead Voxel Hang Glider Frame & Wing Sails
+    attachVoxelBlock(
+        "GliderGripL",
+        Vector3.new(0.18, 2.2, 0.18),
+        woodColor,
+        torso,
+        CFrame.new(-0.9, 1.8, -0.2),
+        gliderFolder
+    )
+    attachVoxelBlock(
+        "GliderGripR",
+        Vector3.new(0.18, 2.2, 0.18),
+        woodColor,
+        torso,
+        CFrame.new(0.9, 1.8, -0.2),
+        gliderFolder
+    )
+    attachVoxelBlock(
+        "GliderCrossbar",
+        Vector3.new(6.8, 0.22, 0.22),
+        woodColor,
+        torso,
+        CFrame.new(0, 2.95, 0.1),
+        gliderFolder
+    )
+    attachVoxelBlock(
+        "GliderKeel",
+        Vector3.new(0.24, 0.24, 4.4),
+        woodColor,
+        torso,
+        CFrame.new(0, 3.05, 0.35),
+        gliderFolder
+    )
+
+    attachVoxelBlock(
+        "GliderWingL",
+        Vector3.new(3.4, 0.14, 3.2),
+        sailCream,
+        torso,
+        CFrame.new(-1.75, 2.98, 0.45) * CFrame.Angles(0, math.rad(14), math.rad(-8)),
+        gliderFolder
+    )
+    attachVoxelBlock(
+        "GliderWingR",
+        Vector3.new(3.4, 0.14, 3.2),
+        sailCream,
+        torso,
+        CFrame.new(1.75, 2.98, 0.45) * CFrame.Angles(0, math.rad(-14), math.rad(8)),
+        gliderFolder
+    )
+    attachVoxelBlock(
+        "GliderStripeL",
+        Vector3.new(1.2, 0.16, 3.0),
+        sailRed,
+        torso,
+        CFrame.new(-2.1, 3.02, 0.45) * CFrame.Angles(0, math.rad(14), math.rad(-8)),
+        gliderFolder
+    )
+    attachVoxelBlock(
+        "GliderStripeR",
+        Vector3.new(1.2, 0.16, 3.0),
+        sailRed,
+        torso,
+        CFrame.new(2.1, 3.02, 0.45) * CFrame.Angles(0, math.rad(-14), math.rad(8)),
+        gliderFolder
+    )
+end
+
 return table.freeze(VoxelRigService)

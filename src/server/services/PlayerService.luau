@@ -1,5 +1,5 @@
 --!strict
--- PlayerService: Server-Authoritative State, Stamina, MP, EXP, Equipment, Spirit Cubes & Quests
+-- PlayerService: Server-Authoritative State, Stamina, MP, EXP, Equipment, Pets, Glider & Data Persistence
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,7 +9,9 @@ local CharacterConfig = require(ReplicatedStorage.configs.CharacterConfig)
 local CombatConfig = require(ReplicatedStorage.configs.CombatConfig)
 local GameConfig = require(ReplicatedStorage.configs.GameConfig)
 local ItemConfig = require(ReplicatedStorage.configs.ItemConfig)
+local PetConfig = require(ReplicatedStorage.configs.PetConfig)
 local Network = require(ReplicatedStorage.network)
+local DataService = require(script.Parent.DataService)
 local VoxelRigService = require(script.Parent.VoxelRigService)
 
 type AppearanceData = CharacterConfig.AppearanceData
@@ -30,6 +32,8 @@ export type PlayerSession = {
     MaxStamina: number,
     IsSprinting: boolean,
     IsDodging: boolean,
+    IsMounted: boolean,
+    IsGliding: boolean,
     LastDodgeTime: number,
     LastStaminaUseTime: number,
     LastAppearanceUpdateTime: number,
@@ -52,6 +56,8 @@ export type PlayerSession = {
     CubeBonusHP: number,
     CubeBonusCrit: number,
     EquippedItem: EquipmentItem?,
+    ActivePetId: string,
+    OwnedPets: { [string]: boolean },
     BonusATK: number,
     BonusHP: number,
     BonusCrit: number,
@@ -74,13 +80,37 @@ local function cloneDefaultAppearance(): AppearanceData
     }
 end
 
+local function serializeSession(session: PlayerSession): { [string]: any }
+    return {
+        Level = session.Level,
+        Exp = session.Exp,
+        MaxExp = session.MaxExp,
+        Gold = session.Gold,
+        JobClass = session.JobClass,
+        Potions = session.Potions,
+        SpiritCubes = table.clone(session.SpiritCubes),
+        WeaponCubeCount = session.WeaponCubeCount,
+        WeaponCubeType = session.WeaponCubeType,
+        CubeBonusATK = session.CubeBonusATK,
+        CubeBonusHP = session.CubeBonusHP,
+        CubeBonusCrit = session.CubeBonusCrit,
+        ActivePetId = session.ActivePetId,
+        OwnedPets = table.clone(session.OwnedPets),
+        Appearance = table.clone(session.Appearance),
+    }
+end
+
 local function recalculateStats(session: PlayerSession)
     local eqATK = if session.EquippedItem then session.EquippedItem.BonusATK else 0
     local eqHP = if session.EquippedItem then session.EquippedItem.BonusHP else 0
     local eqCrit = if session.EquippedItem then session.EquippedItem.BonusCrit else 0
 
-    session.BonusATK = eqATK + session.CubeBonusATK
-    session.BonusHP = eqHP + session.CubeBonusHP
+    local petSpec = PetConfig.Pets[session.ActivePetId] or PetConfig.Pets.SlimePet
+    local petATK = petSpec.BonusATK
+    local petHP = petSpec.BonusHP
+
+    session.BonusATK = eqATK + session.CubeBonusATK + petATK
+    session.BonusHP = eqHP + session.CubeBonusHP + petHP
     session.BonusCrit = eqCrit + session.CubeBonusCrit
 
     local baseHP = GameConfig.Stats.BaseMaxHP + (session.Level - 1) * 20
@@ -127,6 +157,9 @@ local function syncAttributes(session: PlayerSession)
     player:SetAttribute("MaxStamina", session.MaxStamina)
     player:SetAttribute("IsSprinting", session.IsSprinting)
     player:SetAttribute("IsDodging", session.IsDodging)
+    player:SetAttribute("IsMounted", session.IsMounted)
+    player:SetAttribute("IsGliding", session.IsGliding)
+    player:SetAttribute("ActivePetId", session.ActivePetId)
     player:SetAttribute("SkinTone", session.Appearance.SkinTone)
     player:SetAttribute("EyeColor", session.Appearance.EyeColor)
     player:SetAttribute("HairStyle", session.Appearance.HairStyle)
@@ -149,6 +182,10 @@ local function syncAttributes(session: PlayerSession)
     player:SetAttribute("IceCubeCount", session.SpiritCubes.IceCube or 0)
     player:SetAttribute("EmeraldCubeCount", session.SpiritCubes.EmeraldCube or 0)
     player:SetAttribute("VoidCubeCount", session.SpiritCubes.VoidCube or 0)
+
+    for _, petKey in PetConfig.PetOrder do
+        player:SetAttribute("Owns_" .. petKey, session.OwnedPets[petKey] == true)
+    end
 end
 
 local function updateCharacterWalkSpeed(session: PlayerSession)
@@ -161,7 +198,10 @@ local function updateCharacterWalkSpeed(session: PlayerSession)
         return
     end
 
-    if session.IsSprinting and session.Stamina > 0 then
+    if session.IsMounted then
+        local petSpec = PetConfig.Pets[session.ActivePetId] or PetConfig.Pets.SlimePet
+        humanoid.WalkSpeed = petSpec.MountSpeed
+    elseif session.IsSprinting and session.Stamina > 0 then
         humanoid.WalkSpeed = GameConfig.Movement.SprintSpeed
     else
         humanoid.WalkSpeed = GameConfig.Movement.WalkSpeed
@@ -179,15 +219,17 @@ local function onCharacterAdded(session: PlayerSession, character: Model)
     session.Stamina = session.MaxStamina
     session.IsSprinting = false
     session.IsDodging = false
+    session.IsGliding = false
 
     humanoid.MaxHealth = session.MaxHP
     humanoid.Health = session.HP
-    humanoid.WalkSpeed = GameConfig.Movement.WalkSpeed
     humanoid.UseJumpPower = true
     humanoid.JumpPower = GameConfig.Movement.JumpPower
+    updateCharacterWalkSpeed(session)
 
     character:SetAttribute("IsDodging", false)
     character:SetAttribute("IsSprinting", false)
+    character:SetAttribute("IsGliding", false)
     character:SetAttribute("DodgeRollSeq", 0)
     character:SetAttribute("AttackSeq", 0)
     character:SetAttribute("AttackComboStep", 1)
@@ -208,6 +250,8 @@ local function onCharacterAdded(session: PlayerSession, character: Model)
         end
         session.IsSprinting = false
         session.IsDodging = false
+        session.IsMounted = false
+        session.IsGliding = false
         syncAttributes(session)
     end)
 end
@@ -221,13 +265,19 @@ local function setupPlayer(player: Player)
         player.DevEnableMouseLock = false
     end)
 
+    local saved = DataService.loadProfile(player)
+
     local session: PlayerSession = {
         Player = player,
-        Level = 1,
-        Exp = 0,
-        MaxExp = 100,
-        Gold = 30,
-        JobClass = "Novice",
+        Level = if saved and type(saved.Level) == "number" then saved.Level else 1,
+        Exp = if saved and type(saved.Exp) == "number" then saved.Exp else 0,
+        MaxExp = if saved and type(saved.MaxExp) == "number" then saved.MaxExp else 100,
+        Gold = if saved and type(saved.Gold) == "number" then saved.Gold else 45,
+        JobClass = if saved
+                and type(saved.JobClass) == "string"
+                and CharacterConfig.JobClasses[saved.JobClass]
+            then saved.JobClass
+            else "Novice",
         HP = GameConfig.Stats.BaseMaxHP,
         MaxHP = GameConfig.Stats.BaseMaxHP,
         MP = 0,
@@ -236,6 +286,8 @@ local function setupPlayer(player: Player)
         MaxStamina = GameConfig.Stamina.MaxStamina,
         IsSprinting = false,
         IsDodging = false,
+        IsMounted = false,
+        IsGliding = false,
         LastDodgeTime = 0,
         LastStaminaUseTime = 0,
         LastAppearanceUpdateTime = 0,
@@ -250,29 +302,44 @@ local function setupPlayer(player: Player)
         QuestProgress = 0,
         QuestRequired = 0,
         QuestTargetClass = "",
-        Potions = ItemConfig.Potion.StartCount,
-        SpiritCubes = {
-            FireCube = 2,
-            IceCube = 1,
-            EmeraldCube = 1,
-            VoidCube = 0,
-        },
-        WeaponCubeCount = 0,
-        WeaponCubeType = "FireCube",
-        CubeBonusATK = 0,
-        CubeBonusHP = 0,
-        CubeBonusCrit = 0,
+        Potions = if saved and type(saved.Potions) == "number" then saved.Potions else ItemConfig.Potion.StartCount,
+        SpiritCubes = if saved and type(saved.SpiritCubes) == "table"
+            then saved.SpiritCubes
+            else {
+                FireCube = 2,
+                IceCube = 1,
+                EmeraldCube = 1,
+                VoidCube = 0,
+            },
+        WeaponCubeCount = if saved and type(saved.WeaponCubeCount) == "number" then saved.WeaponCubeCount else 0,
+        WeaponCubeType = if saved and type(saved.WeaponCubeType) == "string" then saved.WeaponCubeType else "FireCube",
+        CubeBonusATK = if saved and type(saved.CubeBonusATK) == "number" then saved.CubeBonusATK else 0,
+        CubeBonusHP = if saved and type(saved.CubeBonusHP) == "number" then saved.CubeBonusHP else 0,
+        CubeBonusCrit = if saved and type(saved.CubeBonusCrit) == "number" then saved.CubeBonusCrit else 0,
         EquippedItem = nil,
+        ActivePetId = if saved
+                and type(saved.ActivePetId) == "string"
+                and PetConfig.Pets[saved.ActivePetId]
+            then saved.ActivePetId
+            else "SlimePet",
+        OwnedPets = if saved and type(saved.OwnedPets) == "table"
+            then saved.OwnedPets
+            else {
+                SlimePet = true,
+            },
         BonusATK = 0,
         BonusHP = 0,
         BonusCrit = 0,
         Inventory = {},
-        Appearance = cloneDefaultAppearance(),
+        Appearance = if saved and type(saved.Appearance) == "table" then saved.Appearance else cloneDefaultAppearance(),
         Connections = {},
     }
 
+    session.OwnedPets.SlimePet = true
+
     sessions[player] = session
     recalculateStats(session)
+    session.HP = session.MaxHP
     syncAttributes(session)
     syncInventoryToClient(session)
 
@@ -291,6 +358,8 @@ local function cleanupPlayer(player: Player)
     if not session then
         return
     end
+
+    DataService.saveProfile(player, serializeSession(session), true)
 
     for _, conn in session.Connections do
         conn:Disconnect()
@@ -324,6 +393,84 @@ function PlayerService.setSprinting(player: Player, wantSprint: boolean)
     player:SetAttribute("IsSprinting", session.IsSprinting)
 end
 
+function PlayerService.toggleMount(player: Player)
+    local session = sessions[player]
+    if not session or session.IsDodging then
+        return
+    end
+
+    session.IsMounted = not session.IsMounted
+    if session.IsMounted and session.IsGliding then
+        session.IsGliding = false
+        if player.Character then
+            player.Character:SetAttribute("IsGliding", false)
+            VoxelRigService.setGliderVisible(player.Character, false)
+        end
+    end
+
+    updateCharacterWalkSpeed(session)
+    syncAttributes(session)
+end
+
+function PlayerService.toggleGlider(player: Player, forceState: boolean?)
+    local session = sessions[player]
+    if not session or session.IsDodging then
+        return
+    end
+
+    local nextState = if forceState ~= nil then forceState else not session.IsGliding
+    session.IsGliding = nextState
+
+    if session.IsGliding and session.IsMounted then
+        session.IsMounted = false
+        updateCharacterWalkSpeed(session)
+    end
+
+    if player.Character then
+        player.Character:SetAttribute("IsGliding", session.IsGliding)
+        VoxelRigService.setGliderVisible(player.Character, session.IsGliding)
+    end
+    syncAttributes(session)
+end
+
+function PlayerService.selectOrTamePet(player: Player, petId: string)
+    local session = sessions[player]
+    if not session then
+        return
+    end
+
+    local spec = PetConfig.Pets[petId]
+    if not spec then
+        return
+    end
+
+    if not session.OwnedPets[petId] then
+        if session.Gold < spec.GoldCost then
+            Network.getEvent("QuestNotification"):FireClient(
+                player,
+                "NOT ENOUGH GOLD TO TAME",
+                string.format("You need %d Gold to buy %s and tame %s!", spec.GoldCost, spec.FoodName, spec.Name),
+                Color3.fromRGB(245, 92, 82)
+            )
+            return
+        end
+        session.Gold -= spec.GoldCost
+        session.OwnedPets[petId] = true
+    end
+
+    session.ActivePetId = petId
+    recalculateStats(session)
+    updateCharacterWalkSpeed(session)
+    syncAttributes(session)
+
+    Network.getEvent("QuestNotification"):FireClient(
+        player,
+        "🐾 COMPANION ACTIVE: " .. string.upper(spec.Name),
+        string.format("%s  |  Press [T] to Ride as Mount!", spec.Description),
+        spec.BodyColor
+    )
+end
+
 function PlayerService.tryDodge(player: Player, moveDirection: Vector3): boolean
     local session = sessions[player]
     if not session then
@@ -348,6 +495,10 @@ function PlayerService.tryDodge(player: Player, moveDirection: Vector3): boolean
 
     if session.Stamina < GameConfig.Stamina.DodgeCost then
         return false
+    end
+
+    if session.IsGliding then
+        PlayerService.toggleGlider(player, false)
     end
 
     session.LastDodgeTime = now
@@ -648,7 +799,6 @@ function PlayerService.addLootItem(player: Player, item: EquipmentItem)
         table.remove(session.Inventory)
     end
 
-    -- Auto-equip if player has no equipped item yet
     if not session.EquippedItem then
         session.EquippedItem = item
         recalculateStats(session)
@@ -846,6 +996,22 @@ function PlayerService.init()
         task.spawn(setupPlayer, player)
     end
 
+    game:BindToClose(function()
+        for player, session in sessions do
+            DataService.saveProfile(player, serializeSession(session), true)
+        end
+    end)
+
+    -- Periodic Auto-Save every 90 seconds
+    task.spawn(function()
+        while true do
+            task.wait(90)
+            for player, session in sessions do
+                DataService.saveProfile(player, serializeSession(session), false)
+            end
+        end
+    end)
+
     RunService.Heartbeat:Connect(function(dt: number)
         local now = os.clock()
         for player, session in sessions do
@@ -862,7 +1028,7 @@ function PlayerService.init()
                 player:SetAttribute("HP", math.floor(session.HP + 0.5))
             end
 
-            if session.IsSprinting and isMoving and not session.IsDodging then
+            if session.IsSprinting and isMoving and not session.IsDodging and not session.IsMounted then
                 session.Stamina = math.max(0, session.Stamina - GameConfig.Stamina.SprintDrainPerSec * dt)
                 session.LastStaminaUseTime = now
 
