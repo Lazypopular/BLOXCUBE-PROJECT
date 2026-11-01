@@ -7,6 +7,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CharacterConfig = require(ReplicatedStorage.configs.CharacterConfig)
+local ItemConfig = require(ReplicatedStorage.configs.ItemConfig)
 
 type AppearanceData = CharacterConfig.AppearanceData
 
@@ -517,6 +518,40 @@ local function buildWeaponInHands(rigModel: Model, jobClassName: string, layer: 
             Enum.Material.Metal
         )
     end
+
+    -- Render Cube World Spirit Cubes attached to the weapon
+    local character = rigModel.Parent
+    local cubeCount = if character then (character:GetAttribute("WeaponCubeCount") :: number?) or 0 else 0
+    local cubeType = if character
+        then (character:GetAttribute("WeaponCubeType") :: string?) or "FireCube"
+        else "FireCube"
+    if cubeCount > 0 then
+        local cubeSpec = ItemConfig.SpiritCubes[cubeType] or ItemConfig.SpiritCubes.FireCube
+        local cubeColor = cubeSpec.Color
+        local hostArm = if jobClassName == "Ranger" then leftArm else rightArm
+        local maxVisual = math.min(cubeCount, 12)
+        for i = 1, maxVisual do
+            local side = if i % 2 == 1 then 1 else -1
+            local row = math.ceil(i / 2)
+            local offset: CFrame
+            if jobClassName == "Ranger" then
+                offset = CFrame.new(0.18 * side, -0.68 + (row - 3.5) * 0.34, -0.52)
+            elseif jobClassName == "Mage" then
+                offset = CFrame.new(0.2 * side, -0.68, -1.1 - row * 0.28)
+            else
+                offset = CFrame.new(0.22 * side, -0.68, -0.88 - row * 0.26)
+            end
+            attachVoxelBlock(
+                "SpiritCube_" .. tostring(i),
+                Vector3.new(0.18, 0.18, 0.18),
+                cubeColor,
+                hostArm,
+                offset,
+                layer,
+                Enum.Material.Neon
+            )
+        end
+    end
 end
 
 local function buildCostumeLayer(rigModel: Model, appearance: AppearanceData, jobClassName: string)
@@ -880,6 +915,102 @@ function VoxelRigService.updateAppearanceAndCostume(character: Model, appearance
 
     buildAppearanceLayer(rigModel, appearance)
     buildCostumeLayer(rigModel, appearance, activeClass)
+end
+
+function VoxelRigService.setGliderVisible(character: Model, isGliding: boolean)
+    local rigModel = character:FindFirstChild("VoxelRig")
+    if not rigModel or not rigModel:IsA("Model") then
+        return
+    end
+
+    local existingGlider = rigModel:FindFirstChild("GliderLayer")
+    if existingGlider then
+        existingGlider:Destroy()
+    end
+
+    if not isGliding then
+        return
+    end
+
+    local torso = rigModel:FindFirstChild("VoxelTorso") :: BasePart?
+    if not torso then
+        return
+    end
+
+    local gliderFolder = Instance.new("Folder")
+    gliderFolder.Name = "GliderLayer"
+    gliderFolder.Parent = rigModel
+
+    local woodColor = Color3.fromRGB(138, 88, 46)
+    local sailCream = Color3.fromRGB(245, 238, 215)
+    local sailRed = Color3.fromRGB(228, 78, 64)
+
+    -- Cube World Style Overhead Voxel Hang Glider Frame & Wing Sails
+    attachVoxelBlock(
+        "GliderGripL",
+        Vector3.new(0.18, 2.2, 0.18),
+        woodColor,
+        torso,
+        CFrame.new(-0.9, 1.8, -0.2),
+        gliderFolder
+    )
+    attachVoxelBlock(
+        "GliderGripR",
+        Vector3.new(0.18, 2.2, 0.18),
+        woodColor,
+        torso,
+        CFrame.new(0.9, 1.8, -0.2),
+        gliderFolder
+    )
+    attachVoxelBlock(
+        "GliderCrossbar",
+        Vector3.new(6.8, 0.22, 0.22),
+        woodColor,
+        torso,
+        CFrame.new(0, 2.95, 0.1),
+        gliderFolder
+    )
+    attachVoxelBlock(
+        "GliderKeel",
+        Vector3.new(0.24, 0.24, 4.4),
+        woodColor,
+        torso,
+        CFrame.new(0, 3.05, 0.35),
+        gliderFolder
+    )
+
+    attachVoxelBlock(
+        "GliderWingL",
+        Vector3.new(3.4, 0.14, 3.2),
+        sailCream,
+        torso,
+        CFrame.new(-1.75, 2.98, 0.45) * CFrame.Angles(0, math.rad(14), math.rad(-8)),
+        gliderFolder
+    )
+    attachVoxelBlock(
+        "GliderWingR",
+        Vector3.new(3.4, 0.14, 3.2),
+        sailCream,
+        torso,
+        CFrame.new(1.75, 2.98, 0.45) * CFrame.Angles(0, math.rad(-14), math.rad(8)),
+        gliderFolder
+    )
+    attachVoxelBlock(
+        "GliderStripeL",
+        Vector3.new(1.2, 0.16, 3.0),
+        sailRed,
+        torso,
+        CFrame.new(-2.1, 3.02, 0.45) * CFrame.Angles(0, math.rad(14), math.rad(-8)),
+        gliderFolder
+    )
+    attachVoxelBlock(
+        "GliderStripeR",
+        Vector3.new(1.2, 0.16, 3.0),
+        sailRed,
+        torso,
+        CFrame.new(2.1, 3.02, 0.45) * CFrame.Angles(0, math.rad(-14), math.rad(8)),
+        gliderFolder
+    )
 end
 
 return table.freeze(VoxelRigService)

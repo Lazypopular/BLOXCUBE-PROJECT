@@ -67,14 +67,14 @@ end
 function CameraController.init()
     updateMouseLockState()
 
-    UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
+    UserInputService.InputBegan:Connect(function(input: InputObject, _gameProcessed: boolean)
         if input.KeyCode == Enum.KeyCode.LeftAlt or input.KeyCode == Enum.KeyCode.RightAlt then
             altHeld = true
             updateMouseLockState()
             return
         end
 
-        if gameProcessed then
+        if UserInputService:GetFocusedTextBox() ~= nil then
             return
         end
 

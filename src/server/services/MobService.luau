@@ -8,6 +8,7 @@ local Workspace = game:GetService("Workspace")
 
 local CombatConfig = require(ReplicatedStorage.configs.CombatConfig)
 local Network = require(ReplicatedStorage.network)
+local LootService = require(script.Parent.LootService)
 local PlayerService = require(script.Parent.PlayerService)
 
 export type MobEntity = {
@@ -76,45 +77,67 @@ local function createPart(
 end
 
 local function createOverheadBillboard(adornee: BasePart, nameText: string, maxHp: number): (Frame, TextLabel)
+    local isBoss = string.find(nameText, "BOSS") ~= nil
     local bb = Instance.new("BillboardGui")
     bb.Name = "MobBillboard"
     bb.Adornee = adornee
-    bb.Size = UDim2.new(0, 140, 0, 42)
-    bb.StudsOffset = Vector3.new(0, 3.6, 0)
+    bb.Size = if isBoss then UDim2.new(0, 210, 0, 52) else UDim2.new(0, 156, 0, 44)
+    bb.StudsOffset = Vector3.new(0, if isBoss then 4.4 else 3.6, 0)
     bb.AlwaysOnTop = false
-    bb.MaxDistance = 75
+    bb.MaxDistance = if isBoss then 110 else 75
     bb.Parent = adornee
 
+    local card = Instance.new("Frame")
+    card.Name = "Card"
+    card.Size = UDim2.new(1, 0, 1, 0)
+    card.BackgroundColor3 = Color3.fromRGB(14, 16, 24)
+    card.BackgroundTransparency = 0.16
+    card.BorderSizePixel = 0
+    card.Parent = bb
+
+    local cardCorner = Instance.new("UICorner")
+    cardCorner.CornerRadius = UDim.new(0, 7)
+    cardCorner.Parent = card
+
+    local cardStroke = Instance.new("UIStroke")
+    cardStroke.Color = if isBoss then Color3.fromRGB(255, 202, 72) else Color3.fromRGB(58, 66, 92)
+    cardStroke.Thickness = if isBoss then 2 else 1.2
+    cardStroke.Transparency = 0.15
+    cardStroke.Parent = card
+
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 18)
+    title.Size = UDim2.new(1, -12, 0, 20)
+    title.Position = UDim2.new(0, 6, 0, 3)
     title.BackgroundTransparency = 1
-    title.Font = Enum.Font.GothamBlack
-    title.TextSize = 12
-    title.TextColor3 = Color3.fromRGB(255, 240, 185)
+    title.Font = Enum.Font.FredokaOne
+    title.TextSize = if isBoss then 14 else 12
+    title.TextColor3 = if isBoss then Color3.fromRGB(255, 214, 82) else Color3.fromRGB(242, 245, 252)
     title.TextStrokeTransparency = 0.25
+    title.TextTruncate = Enum.TextTruncate.AtEnd
     title.Text = nameText
-    title.Parent = bb
+    title.Parent = card
 
     local barBg = Instance.new("Frame")
-    barBg.Size = UDim2.new(1, -10, 0, 14)
-    barBg.Position = UDim2.new(0, 5, 0, 20)
-    barBg.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
+    barBg.Size = UDim2.new(1, -14, 0, if isBoss then 16 else 13)
+    barBg.Position = UDim2.new(0, 7, 1, if isBoss then -22 else -18)
+    barBg.BackgroundColor3 = Color3.fromRGB(10, 12, 18)
     barBg.BorderSizePixel = 0
-    barBg.Parent = bb
+    barBg.ClipsDescendants = true
+    barBg.Parent = card
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 4)
     corner.Parent = barBg
 
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(68, 76, 98)
-    stroke.Thickness = 1.5
+    stroke.Color = Color3.fromRGB(42, 48, 68)
+    stroke.Thickness = 1
     stroke.Parent = barBg
 
     local fill = Instance.new("Frame")
     fill.Name = "Fill"
     fill.Size = UDim2.new(1, 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(235, 68, 68)
+    fill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     fill.BorderSizePixel = 0
     fill.Parent = barBg
 
@@ -122,13 +145,28 @@ local function createOverheadBillboard(adornee: BasePart, nameText: string, maxH
     fillCorner.CornerRadius = UDim.new(0, 4)
     fillCorner.Parent = fill
 
+    local fillGrad = Instance.new("UIGradient")
+    fillGrad.Color = if isBoss
+        then ColorSequence.new(Color3.fromRGB(255, 168, 58), Color3.fromRGB(214, 52, 64))
+        else ColorSequence.new(Color3.fromRGB(236, 68, 78), Color3.fromRGB(154, 28, 44))
+    fillGrad.Rotation = 90
+    fillGrad.Parent = fill
+
+    local shine = Instance.new("Frame")
+    shine.Size = UDim2.new(1, 0, 0.38, 0)
+    shine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    shine.BackgroundTransparency = 0.8
+    shine.BorderSizePixel = 0
+    shine.Parent = fill
+
     local hpLabel = Instance.new("TextLabel")
     hpLabel.Size = UDim2.new(1, 0, 1, 0)
     hpLabel.BackgroundTransparency = 1
-    hpLabel.Font = Enum.Font.GothamBold
+    hpLabel.Font = Enum.Font.GothamBlack
     hpLabel.TextSize = 10
     hpLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    hpLabel.TextStrokeTransparency = 0.3
+    hpLabel.TextStrokeTransparency = 0.35
+    hpLabel.ZIndex = 2
     hpLabel.Text = string.format("%d / %d", maxHp, maxHp)
     hpLabel.Parent = barBg
 
@@ -177,6 +215,26 @@ local function buildMobVisuals(spec: any, groundPos: Vector3, parentFolder: Fold
             rootCFrame * CFrame.new(0.52 * scale, 0.18 * scale, -1.36 * scale),
             model
         )
+
+        if spec.IsBoss then
+            -- Royal Gold Voxel Crown & Ruby Gem for King Gelatus
+            local crownGold = Color3.fromRGB(255, 206, 58)
+            local rubyRed = Color3.fromRGB(245, 42, 68)
+            createPart(
+                "BossCrownBase",
+                Vector3.new(1.5 * scale, 0.35 * scale, 1.5 * scale),
+                crownGold,
+                rootCFrame * CFrame.new(0, 1.38 * scale, 0),
+                model
+            )
+            createPart(
+                "BossCrownGem",
+                Vector3.new(0.42 * scale, 0.42 * scale, 0.2 * scale),
+                rubyRed,
+                rootCFrame * CFrame.new(0, 1.42 * scale, -0.78 * scale),
+                model
+            )
+        end
     end
 
     -- Record relative offsets to RootPart so moving RootPart moves all child parts cleanly
@@ -260,6 +318,10 @@ function MobService.applyDamage(mob: MobEntity, attacker: Player, amount: number
 
         PlayerService.addExpAndGold(attacker, mob.Spec.ExpReward, mob.Spec.GoldReward)
         PlayerService.recordQuestProgress(attacker, "MobsDefeated", 1)
+
+        if mob.Spec.MobType ~= "TrainingDummy" then
+            LootService.spawnMobLoot(mob.RootPart.Position, attacker, mob.Spec.IsBoss == true)
+        end
 
         task.delay(mob.Spec.RespawnTime, function()
             mob.HP = mob.MaxHP

@@ -140,40 +140,58 @@ local function spawnFloatingDamageNumber(
     anchor.Parent = Workspace
 
     local bb = Instance.new("BillboardGui")
-    bb.Size = UDim2.new(0, 120, 0, 40)
+    bb.Size = UDim2.new(0, 150, 0, 46)
     bb.AlwaysOnTop = true
     bb.Parent = anchor
 
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamBlack
-    label.TextStrokeTransparency = 0.15
+    label.Font = Enum.Font.FredokaOne
+    label.TextStrokeColor3 = Color3.fromRGB(12, 14, 22)
+    label.TextStrokeTransparency = 0.08
 
-    if textOverride then
-        label.Text = textOverride
-        label.TextSize = 16
-        label.TextColor3 = Color3.fromRGB(95, 225, 255)
-    elseif isCrit then
-        label.Text = tostring(amount) .. " CRIT!"
-        label.TextSize = 20
-        label.TextColor3 = Color3.fromRGB(255, 215, 55)
-    elseif isSpecial then
-        label.Text = tostring(amount) .. "!"
+    local scale = Instance.new("UIScale")
+    scale.Scale = if isCrit or isSpecial then 1.38 else 1.12
+    scale.Parent = label
+
+    if textOverride == "PLAYER_HIT" then
+        label.Text = "-" .. tostring(amount)
         label.TextSize = 18
-        label.TextColor3 = Color3.fromRGB(255, 138, 65)
+        label.TextColor3 = Color3.fromRGB(255, 82, 88)
+    elseif textOverride and string.sub(textOverride, 1, 1) == "+" then
+        label.Text = textOverride
+        label.TextSize = 19
+        label.TextColor3 = Color3.fromRGB(98, 245, 134)
+        spawnImpactSparks(worldPosition, Color3.fromRGB(98, 245, 134), 6)
+    elseif textOverride then
+        label.Text = textOverride
+        label.TextSize = 17
+        label.TextColor3 = Color3.fromRGB(102, 226, 255)
+    elseif isCrit then
+        label.Text = "✦ " .. tostring(amount) .. " CRIT!"
+        label.TextSize = 23
+        label.TextColor3 = Color3.fromRGB(255, 214, 62)
+    elseif isSpecial then
+        label.Text = "⚡ " .. tostring(amount) .. "!"
+        label.TextSize = 20
+        label.TextColor3 = Color3.fromRGB(255, 144, 68)
     else
         label.Text = tostring(amount)
-        label.TextSize = 15
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextSize = 17
+        label.TextColor3 = Color3.fromRGB(248, 250, 255)
     end
 
     label.Parent = bb
 
-    local tween = TweenService:Create(anchor, TweenInfo.new(0.65, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-        Position = anchor.Position + Vector3.new(0, 3.2, 0),
+    TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Scale = 1,
+    }):Play()
+
+    local tween = TweenService:Create(anchor, TweenInfo.new(0.68, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Position = anchor.Position + Vector3.new(0, 3.4, 0),
     })
-    local fadeTween = TweenService:Create(label, TweenInfo.new(0.65, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+    local fadeTween = TweenService:Create(label, TweenInfo.new(0.68, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
         TextTransparency = 1,
         TextStrokeTransparency = 1,
     })
@@ -256,7 +274,16 @@ function CombatController.init()
     )
 
     UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
-        if gameProcessed then
+        if UserInputService:GetFocusedTextBox() ~= nil then
+            return
+        end
+
+        if input.KeyCode == Enum.KeyCode.One or input.KeyCode == Enum.KeyCode.KeypadOne then
+            Network.getEvent("RequestUsePotion"):FireServer()
+            return
+        end
+
+        if gameProcessed and input.UserInputType == Enum.UserInputType.MouseButton1 then
             return
         end
 
