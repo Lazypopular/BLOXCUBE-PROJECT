@@ -8,6 +8,7 @@ local Workspace = game:GetService("Workspace")
 
 local CombatConfig = require(ReplicatedStorage.configs.CombatConfig)
 local Network = require(ReplicatedStorage.network)
+local LootService = require(script.Parent.LootService)
 local PlayerService = require(script.Parent.PlayerService)
 
 export type MobEntity = {
@@ -177,6 +178,26 @@ local function buildMobVisuals(spec: any, groundPos: Vector3, parentFolder: Fold
             rootCFrame * CFrame.new(0.52 * scale, 0.18 * scale, -1.36 * scale),
             model
         )
+
+        if spec.IsBoss then
+            -- Royal Gold Voxel Crown & Ruby Gem for King Gelatus
+            local crownGold = Color3.fromRGB(255, 206, 58)
+            local rubyRed = Color3.fromRGB(245, 42, 68)
+            createPart(
+                "BossCrownBase",
+                Vector3.new(1.5 * scale, 0.35 * scale, 1.5 * scale),
+                crownGold,
+                rootCFrame * CFrame.new(0, 1.38 * scale, 0),
+                model
+            )
+            createPart(
+                "BossCrownGem",
+                Vector3.new(0.42 * scale, 0.42 * scale, 0.2 * scale),
+                rubyRed,
+                rootCFrame * CFrame.new(0, 1.42 * scale, -0.78 * scale),
+                model
+            )
+        end
     end
 
     -- Record relative offsets to RootPart so moving RootPart moves all child parts cleanly
@@ -260,6 +281,10 @@ function MobService.applyDamage(mob: MobEntity, attacker: Player, amount: number
 
         PlayerService.addExpAndGold(attacker, mob.Spec.ExpReward, mob.Spec.GoldReward)
         PlayerService.recordQuestProgress(attacker, "MobsDefeated", 1)
+
+        if mob.Spec.MobType ~= "TrainingDummy" then
+            LootService.spawnMobLoot(mob.RootPart.Position, attacker, mob.Spec.IsBoss == true)
+        end
 
         task.delay(mob.Spec.RespawnTime, function()
             mob.HP = mob.MaxHP

@@ -7,6 +7,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CharacterConfig = require(ReplicatedStorage.configs.CharacterConfig)
+local ItemConfig = require(ReplicatedStorage.configs.ItemConfig)
 
 type AppearanceData = CharacterConfig.AppearanceData
 
@@ -516,6 +517,40 @@ local function buildWeaponInHands(rigModel: Model, jobClassName: string, layer: 
             layer,
             Enum.Material.Metal
         )
+    end
+
+    -- Render Cube World Spirit Cubes attached to the weapon
+    local character = rigModel.Parent
+    local cubeCount = if character then (character:GetAttribute("WeaponCubeCount") :: number?) or 0 else 0
+    local cubeType = if character
+        then (character:GetAttribute("WeaponCubeType") :: string?) or "FireCube"
+        else "FireCube"
+    if cubeCount > 0 then
+        local cubeSpec = ItemConfig.SpiritCubes[cubeType] or ItemConfig.SpiritCubes.FireCube
+        local cubeColor = cubeSpec.Color
+        local hostArm = if jobClassName == "Ranger" then leftArm else rightArm
+        local maxVisual = math.min(cubeCount, 12)
+        for i = 1, maxVisual do
+            local side = if i % 2 == 1 then 1 else -1
+            local row = math.ceil(i / 2)
+            local offset: CFrame
+            if jobClassName == "Ranger" then
+                offset = CFrame.new(0.18 * side, -0.68 + (row - 3.5) * 0.34, -0.52)
+            elseif jobClassName == "Mage" then
+                offset = CFrame.new(0.2 * side, -0.68, -1.1 - row * 0.28)
+            else
+                offset = CFrame.new(0.22 * side, -0.68, -0.88 - row * 0.26)
+            end
+            attachVoxelBlock(
+                "SpiritCube_" .. tostring(i),
+                Vector3.new(0.18, 0.18, 0.18),
+                cubeColor,
+                hostArm,
+                offset,
+                layer,
+                Enum.Material.Neon
+            )
+        end
     end
 end
 

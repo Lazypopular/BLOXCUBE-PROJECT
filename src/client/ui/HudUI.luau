@@ -1,5 +1,5 @@
 --!strict
--- HudUI: Cube World Status Bars, Quest Tracker, Combat Skill Bar & Character/Outfit Customizer
+-- HudUI: Cube World Status Bars, Quest Tracker, Spirit Cube Weapon Forge ([I]), & Appearance Customizer ([C])
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,10 +9,13 @@ local UserInputService = game:GetService("UserInputService")
 local CharacterConfig = require(ReplicatedStorage.configs.CharacterConfig)
 local CombatConfig = require(ReplicatedStorage.configs.CombatConfig)
 local GameConfig = require(ReplicatedStorage.configs.GameConfig)
+local ItemConfig = require(ReplicatedStorage.configs.ItemConfig)
 local Network = require(ReplicatedStorage.network)
 local CameraController = require(script.Parent.Parent.controllers.CameraController)
 
 local localPlayer = Players.LocalPlayer
+
+type EquipmentItem = ItemConfig.EquipmentItem
 
 local HudUI = {}
 
@@ -102,7 +105,7 @@ function HudUI.init()
     -- 1. Top-Left Cube World Status Card
     local statusCard = Instance.new("Frame")
     statusCard.Name = "StatusCard"
-    statusCard.Size = UDim2.new(0, 300, 0, 148)
+    statusCard.Size = UDim2.new(0, 315, 0, 148)
     statusCard.Position = UDim2.new(0, 20, 0, 20)
     statusCard.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
     statusCard.BackgroundTransparency = 0.12
@@ -117,10 +120,10 @@ function HudUI.init()
     headerLabel.Position = UDim2.new(0, 12, 0, 7)
     headerLabel.BackgroundTransparency = 1
     headerLabel.Font = Enum.Font.GothamBlack
-    headerLabel.TextSize = 13
+    headerLabel.TextSize = 12
     headerLabel.TextColor3 = Color3.fromRGB(245, 208, 96)
     headerLabel.TextXAlignment = Enum.TextXAlignment.Left
-    headerLabel.Text = "LV. 1  [Novice]   |   Gold: 0"
+    headerLabel.Text = "LV. 1  [Novice]   |   Gold: 30"
     headerLabel.Parent = statusCard
 
     local dodgeBadge = Instance.new("TextLabel")
@@ -145,7 +148,7 @@ function HudUI.init()
     -- 2. Top-Right Class Trial / Quest Tracker Card
     local questCard = Instance.new("Frame")
     questCard.Name = "QuestCard"
-    questCard.Size = UDim2.new(0, 310, 0, 86)
+    questCard.Size = UDim2.new(0, 320, 0, 88)
     questCard.AnchorPoint = Vector2.new(1, 0)
     questCard.Position = UDim2.new(1, -20, 0, 20)
     questCard.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
@@ -187,13 +190,13 @@ function HudUI.init()
     questProgLabel.TextSize = 11
     questProgLabel.TextColor3 = Color3.fromRGB(115, 232, 138)
     questProgLabel.TextXAlignment = Enum.TextXAlignment.Left
-    questProgLabel.Text = "Tip: Attack Dummies/Slimes with LMB to build MP!"
+    questProgLabel.Text = "Boss Arena (Far South)  |  Spirit Forge [I]"
     questProgLabel.Parent = questCard
 
     -- 3. Top-Center Toast Notification Banner
     local toastBanner = Instance.new("Frame")
     toastBanner.Name = "ToastBanner"
-    toastBanner.Size = UDim2.new(0, 420, 0, 58)
+    toastBanner.Size = UDim2.new(0, 440, 0, 58)
     toastBanner.AnchorPoint = Vector2.new(0.5, 0)
     toastBanner.Position = UDim2.new(0.5, 0, 0, 22)
     toastBanner.BackgroundColor3 = Color3.fromRGB(18, 22, 32)
@@ -258,7 +261,7 @@ function HudUI.init()
     -- 5. Bottom Combat Action Bar & Controls
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomHints"
-    bottomBar.Size = UDim2.new(0, 760, 0, 54)
+    bottomBar.Size = UDim2.new(0, 820, 0, 54)
     bottomBar.AnchorPoint = Vector2.new(0.5, 1)
     bottomBar.Position = UDim2.new(0.5, 0, 1, -14)
     bottomBar.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
@@ -275,7 +278,7 @@ function HudUI.init()
     combatInfoText.Font = Enum.Font.GothamBlack
     combatInfoText.TextSize = 12
     combatInfoText.TextColor3 = Color3.fromRGB(255, 216, 102)
-    combatInfoText.Text = "[LMB] Combo Attack (+MP)   |   [RMB / F] Special Attack (35 MP)"
+    combatInfoText.Text = "[LMB] Combo (+MP)   |   [RMB / F] Special (35 MP)   |   [1] Heartflower Potion (x3)"
     combatInfoText.Parent = bottomBar
 
     local hintsText = Instance.new("TextLabel")
@@ -286,7 +289,7 @@ function HudUI.init()
     hintsText.TextSize = 11
     hintsText.TextColor3 = Color3.fromRGB(198, 208, 228)
     hintsText.Text =
-        "[Shift] Sprint   |   [Q / Ctrl] Dodge Roll   |   [E] Talk to Class Master   |   [C] Appearance & Outfit   |   [Alt / V] Cursor"
+        "[Shift] Sprint  |  [Q / Ctrl] Dodge  |  [E] Interact  |  [I] Spirit Forge & Bag  |  [C] Appearance  |  [Alt / V] Cursor"
     hintsText.Parent = bottomBar
 
     -- 6. Character Appearance & Starter Outfit Customizer Panel ([C])
@@ -301,28 +304,28 @@ function HudUI.init()
     customPanel.Visible = false
     customPanel.Parent = screenGui
     createCorner(customPanel, 8)
-    createStroke(customPanel, Color3.fromRGB(238, 184, 48), 2)
+    createStroke(customPanel, Color3.fromRGB(96, 112, 148), 2)
 
     local panelTitle = Instance.new("TextLabel")
-    panelTitle.Size = UDim2.new(1, -24, 0, 28)
+    panelTitle.Size = UDim2.new(1, -24, 0, 26)
     panelTitle.Position = UDim2.new(0, 12, 0, 10)
     panelTitle.BackgroundTransparency = 1
     panelTitle.Font = Enum.Font.GothamBlack
-    panelTitle.TextSize = 15
-    panelTitle.TextColor3 = Color3.fromRGB(245, 208, 96)
+    panelTitle.TextSize = 14
+    panelTitle.TextColor3 = Color3.fromRGB(255, 214, 92)
     panelTitle.TextXAlignment = Enum.TextXAlignment.Left
-    panelTitle.Text = "CHARACTER & OUTFIT CUSTOMIZER"
+    panelTitle.Text = "APPEARANCE & STARTER OUTFIT"
     panelTitle.Parent = customPanel
 
     local panelSub = Instance.new("TextLabel")
-    panelSub.Size = UDim2.new(1, -24, 0, 18)
-    panelSub.Position = UDim2.new(0, 12, 0, 34)
+    panelSub.Size = UDim2.new(1, -24, 0, 16)
+    panelSub.Position = UDim2.new(0, 12, 0, 32)
     panelSub.BackgroundTransparency = 1
     panelSub.Font = Enum.Font.GothamMedium
     panelSub.TextSize = 11
-    panelSub.TextColor3 = Color3.fromRGB(165, 176, 198)
+    panelSub.TextColor3 = Color3.fromRGB(165, 178, 205)
     panelSub.TextXAlignment = Enum.TextXAlignment.Left
-    panelSub.Text = "Customize Appearance & Novice Starter Outfit"
+    panelSub.Text = "Customize physical traits & Novice civilian clothes"
     panelSub.Parent = customPanel
 
     local skinIdx = 1
@@ -337,131 +340,356 @@ function HudUI.init()
     local hairColorList = CharacterConfig.HairColorOrder
     local outfitList = CharacterConfig.OutfitOrder
 
-    local function syncAppearanceToServer()
-        Network.getEvent("RequestUpdateAppearance"):FireServer(
-            skinList[skinIdx],
-            eyeList[eyeIdx],
-            hairStyleList[hairStyleIdx],
-            hairColorList[hairColorIdx],
-            outfitList[outfitIdx]
-        )
+    local valueLabels: { [string]: TextLabel } = {}
+
+    local function pushAppearanceUpdate()
+        local skinKey = skinList[skinIdx]
+        local eyeKey = eyeList[eyeIdx]
+        local hairStyleKey = hairStyleList[hairStyleIdx]
+        local hairColorKey = hairColorList[hairColorIdx]
+        local outfitKey = outfitList[outfitIdx]
+
+        valueLabels.SkinTone.Text = CharacterConfig.SkinTones[skinKey].Name
+        valueLabels.EyeColor.Text = CharacterConfig.EyeColors[eyeKey].Name
+        valueLabels.HairStyle.Text = hairStyleKey
+        valueLabels.HairColor.Text = CharacterConfig.HairColors[hairColorKey].Name
+        valueLabels.OutfitStyle.Text = CharacterConfig.StarterOutfits[outfitKey].Name
+
+        Network.getEvent("RequestUpdateAppearance"):FireServer(skinKey, eyeKey, hairStyleKey, hairColorKey, outfitKey)
     end
 
-    local function createSelectorRow(
-        rowTitle: string,
-        posY: number,
-        getDisplayValue: () -> string,
-        onStep: (delta: number) -> ()
-    )
+    local function createSelectorRow(rowKey: string, titleText: string, posY: number, onStep: (delta: number) -> ())
         local row = Instance.new("Frame")
+        row.Name = rowKey .. "Row"
         row.Size = UDim2.new(1, -24, 0, 38)
         row.Position = UDim2.new(0, 12, 0, posY)
-        row.BackgroundColor3 = Color3.fromRGB(28, 33, 46)
+        row.BackgroundColor3 = Color3.fromRGB(26, 30, 42)
         row.BorderSizePixel = 0
         row.Parent = customPanel
         createCorner(row, 6)
+        createStroke(row, Color3.fromRGB(54, 62, 82), 1)
 
         local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0, 108, 1, 0)
+        label.Size = UDim2.new(0, 95, 1, 0)
         label.Position = UDim2.new(0, 10, 0, 0)
         label.BackgroundTransparency = 1
         label.Font = Enum.Font.GothamBold
         label.TextSize = 12
-        label.TextColor3 = Color3.fromRGB(205, 214, 232)
+        label.TextColor3 = Color3.fromRGB(210, 218, 235)
         label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Text = rowTitle
+        label.Text = titleText
         label.Parent = row
 
-        local valLabel = Instance.new("TextLabel")
-        valLabel.Size = UDim2.new(0, 132, 1, 0)
-        valLabel.Position = UDim2.new(0, 146, 0, 0)
-        valLabel.BackgroundTransparency = 1
-        valLabel.Font = Enum.Font.GothamBold
-        valLabel.TextSize = 12
-        valLabel.TextColor3 = Color3.fromRGB(255, 230, 128)
-        valLabel.Text = getDisplayValue()
-        valLabel.Parent = row
-
         local prevBtn = Instance.new("TextButton")
-        prevBtn.Size = UDim2.new(0, 26, 0, 26)
-        prevBtn.Position = UDim2.new(0, 116, 0.5, -13)
-        prevBtn.BackgroundColor3 = Color3.fromRGB(48, 56, 76)
+        prevBtn.Name = "PrevBtn"
+        prevBtn.Size = UDim2.new(0, 28, 0, 26)
+        prevBtn.Position = UDim2.new(0, 108, 0.5, -13)
+        prevBtn.BackgroundColor3 = Color3.fromRGB(42, 48, 66)
         prevBtn.Font = Enum.Font.GothamBlack
-        prevBtn.TextSize = 14
+        prevBtn.TextSize = 13
         prevBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         prevBtn.Text = "<"
         prevBtn.Parent = row
         createCorner(prevBtn, 4)
 
+        local valText = Instance.new("TextLabel")
+        valText.Name = "ValueLabel"
+        valText.Size = UDim2.new(1, -180, 1, 0)
+        valText.Position = UDim2.new(0, 140, 0, 0)
+        valText.BackgroundTransparency = 1
+        valText.Font = Enum.Font.GothamBold
+        valText.TextSize = 12
+        valText.TextColor3 = Color3.fromRGB(255, 224, 112)
+        valText.Text = ""
+        valText.Parent = row
+        valueLabels[rowKey] = valText
+
         local nextBtn = Instance.new("TextButton")
-        nextBtn.Size = UDim2.new(0, 26, 0, 26)
-        nextBtn.Position = UDim2.new(1, -34, 0.5, -13)
-        nextBtn.BackgroundColor3 = Color3.fromRGB(48, 56, 76)
+        nextBtn.Name = "NextBtn"
+        nextBtn.Size = UDim2.new(0, 28, 0, 26)
+        nextBtn.Position = UDim2.new(1, -36, 0.5, -13)
+        nextBtn.BackgroundColor3 = Color3.fromRGB(42, 48, 66)
         nextBtn.Font = Enum.Font.GothamBlack
-        nextBtn.TextSize = 14
+        nextBtn.TextSize = 13
         nextBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         nextBtn.Text = ">"
         nextBtn.Parent = row
         createCorner(nextBtn, 4)
 
-        prevBtn.Activated:Connect(function()
+        prevBtn.MouseButton1Click:Connect(function()
             onStep(-1)
-            valLabel.Text = getDisplayValue()
-            syncAppearanceToServer()
+            pushAppearanceUpdate()
         end)
 
-        nextBtn.Activated:Connect(function()
+        nextBtn.MouseButton1Click:Connect(function()
             onStep(1)
-            valLabel.Text = getDisplayValue()
-            syncAppearanceToServer()
+            pushAppearanceUpdate()
         end)
     end
 
-    createSelectorRow("Race / Skin", 62, function()
-        local key = skinList[skinIdx]
-        return CharacterConfig.SkinTones[key].Name
-    end, function(delta)
+    createSelectorRow("SkinTone", "Race / Skin", 62, function(delta)
         skinIdx = ((skinIdx - 1 + delta) % #skinList) + 1
     end)
-
-    createSelectorRow("Eye Color", 106, function()
-        local key = eyeList[eyeIdx]
-        return CharacterConfig.EyeColors[key].Name
-    end, function(delta)
+    createSelectorRow("EyeColor", "Eye Color", 106, function(delta)
         eyeIdx = ((eyeIdx - 1 + delta) % #eyeList) + 1
     end)
-
-    createSelectorRow("Hair Style", 150, function()
-        return hairStyleList[hairStyleIdx]
-    end, function(delta)
+    createSelectorRow("HairStyle", "Hair Style", 150, function(delta)
         hairStyleIdx = ((hairStyleIdx - 1 + delta) % #hairStyleList) + 1
     end)
-
-    createSelectorRow("Hair Color", 194, function()
-        local key = hairColorList[hairColorIdx]
-        return CharacterConfig.HairColors[key].Name
-    end, function(delta)
+    createSelectorRow("HairColor", "Hair Color", 194, function(delta)
         hairColorIdx = ((hairColorIdx - 1 + delta) % #hairColorList) + 1
     end)
-
-    createSelectorRow("Outfit Style", 244, function()
-        local key = outfitList[outfitIdx]
-        return CharacterConfig.StarterOutfits[key].Name
-    end, function(delta)
+    createSelectorRow("OutfitStyle", "Outfit Style", 244, function(delta)
         outfitIdx = ((outfitIdx - 1 + delta) % #outfitList) + 1
     end)
 
-    local function toggleCustomPanel()
-        customPanel.Visible = not customPanel.Visible
-        CameraController.setUIPanelOpen(customPanel.Visible)
+    valueLabels.SkinTone.Text = CharacterConfig.SkinTones[skinList[skinIdx]].Name
+    valueLabels.EyeColor.Text = CharacterConfig.EyeColors[eyeList[eyeIdx]].Name
+    valueLabels.HairStyle.Text = hairStyleList[hairStyleIdx]
+    valueLabels.HairColor.Text = CharacterConfig.HairColors[hairColorList[hairColorIdx]].Name
+    valueLabels.OutfitStyle.Text = CharacterConfig.StarterOutfits[outfitList[outfitIdx]].Name
+
+    -- 7. Cube World Spirit Cube Weapon Forge & Equipment Bag Panel ([I] or [B])
+    local forgePanel = Instance.new("Frame")
+    forgePanel.Name = "ForgePanel"
+    forgePanel.Size = UDim2.new(0, 410, 0, 445)
+    forgePanel.AnchorPoint = Vector2.new(0.5, 0.5)
+    forgePanel.Position = UDim2.new(0.5, 0, 0.5, 0)
+    forgePanel.BackgroundColor3 = Color3.fromRGB(16, 19, 28)
+    forgePanel.BackgroundTransparency = 0.04
+    forgePanel.BorderSizePixel = 0
+    forgePanel.Visible = false
+    forgePanel.Parent = screenGui
+    createCorner(forgePanel, 8)
+    createStroke(forgePanel, Color3.fromRGB(88, 198, 255), 2)
+
+    local forgeHeader = Instance.new("TextLabel")
+    forgeHeader.Size = UDim2.new(1, -60, 0, 24)
+    forgeHeader.Position = UDim2.new(0, 14, 0, 10)
+    forgeHeader.BackgroundTransparency = 1
+    forgeHeader.Font = Enum.Font.GothamBlack
+    forgeHeader.TextSize = 14
+    forgeHeader.TextColor3 = Color3.fromRGB(98, 220, 255)
+    forgeHeader.TextXAlignment = Enum.TextXAlignment.Left
+    forgeHeader.Text = "⚒ SPIRIT CUBE WEAPON FORGE & LOOT BAG"
+    forgeHeader.Parent = forgePanel
+
+    local closeForgeBtn = Instance.new("TextButton")
+    closeForgeBtn.Size = UDim2.new(0, 28, 0, 26)
+    closeForgeBtn.Position = UDim2.new(1, -38, 0, 10)
+    closeForgeBtn.BackgroundColor3 = Color3.fromRGB(185, 58, 68)
+    closeForgeBtn.Font = Enum.Font.GothamBlack
+    closeForgeBtn.TextSize = 12
+    closeForgeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeForgeBtn.Text = "X"
+    closeForgeBtn.Parent = forgePanel
+    createCorner(closeForgeBtn, 4)
+
+    local equippedSummary = Instance.new("TextLabel")
+    equippedSummary.Name = "EquippedSummary"
+    equippedSummary.Size = UDim2.new(1, -28, 0, 42)
+    equippedSummary.Position = UDim2.new(0, 14, 0, 38)
+    equippedSummary.BackgroundColor3 = Color3.fromRGB(24, 28, 40)
+    equippedSummary.Font = Enum.Font.GothamBold
+    equippedSummary.TextSize = 12
+    equippedSummary.TextColor3 = Color3.fromRGB(255, 224, 102)
+    equippedSummary.TextWrapped = true
+    equippedSummary.Text =
+        "Weapon: ★ Wooden Practice Sword (+0/12 Cubes)\nTotal Bonus: +0 ATK  |  +0 MaxHP  |  +0% Crit"
+    equippedSummary.Parent = forgePanel
+    createCorner(equippedSummary, 6)
+    createStroke(equippedSummary, Color3.fromRGB(64, 76, 102), 1)
+
+    -- Spirit Cube Forge Buttons (4 Cube Types)
+    local cubeCountLabels: { [string]: TextLabel } = {}
+    for idx, cubeKey in ItemConfig.SpiritCubeOrder do
+        local spec = ItemConfig.SpiritCubes[cubeKey]
+        local rowY = 86 + (idx - 1) * 38
+
+        local cubeRow = Instance.new("Frame")
+        cubeRow.Size = UDim2.new(1, -28, 0, 34)
+        cubeRow.Position = UDim2.new(0, 14, 0, rowY)
+        cubeRow.BackgroundColor3 = Color3.fromRGB(24, 28, 40)
+        cubeRow.BorderSizePixel = 0
+        cubeRow.Parent = forgePanel
+        createCorner(cubeRow, 5)
+        createStroke(cubeRow, spec.Color, 1)
+
+        local cLabel = Instance.new("TextLabel")
+        cLabel.Size = UDim2.new(1, -118, 1, 0)
+        cLabel.Position = UDim2.new(0, 10, 0, 0)
+        cLabel.BackgroundTransparency = 1
+        cLabel.Font = Enum.Font.GothamBold
+        cLabel.TextSize = 11
+        cLabel.TextColor3 = spec.Color
+        cLabel.TextXAlignment = Enum.TextXAlignment.Left
+        cLabel.Text = string.format("❖ %s (%s) — x0", spec.ShortName, spec.Description)
+        cLabel.Parent = cubeRow
+        cubeCountLabels[cubeKey] = cLabel
+
+        local attachBtn = Instance.new("TextButton")
+        attachBtn.Size = UDim2.new(0, 96, 0, 24)
+        attachBtn.Position = UDim2.new(1, -102, 0.5, -12)
+        attachBtn.BackgroundColor3 = Color3.fromRGB(42, 92, 138)
+        attachBtn.Font = Enum.Font.GothamBlack
+        attachBtn.TextSize = 11
+        attachBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        attachBtn.Text = "FORGE +1"
+        attachBtn.Parent = cubeRow
+        createCorner(attachBtn, 4)
+
+        attachBtn.MouseButton1Click:Connect(function()
+            Network.getEvent("RequestAttachCube"):FireServer(cubeKey)
+        end)
     end
 
-    UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
-        if gameProcessed then
+    -- Brew Potion Button inside Forge/Bag Panel
+    local brewPotionBtn = Instance.new("TextButton")
+    brewPotionBtn.Size = UDim2.new(1, -28, 0, 30)
+    brewPotionBtn.Position = UDim2.new(0, 14, 0, 242)
+    brewPotionBtn.BackgroundColor3 = Color3.fromRGB(168, 48, 72)
+    brewPotionBtn.Font = Enum.Font.GothamBlack
+    brewPotionBtn.TextSize = 12
+    brewPotionBtn.TextColor3 = Color3.fromRGB(255, 240, 245)
+    brewPotionBtn.Text = "♥ Brew Heartflower Potion (-15 Gold)   |   Press [1] to Heal"
+    brewPotionBtn.Parent = forgePanel
+    createCorner(brewPotionBtn, 5)
+
+    brewPotionBtn.MouseButton1Click:Connect(function()
+        Network.getEvent("RequestBuyPotion"):FireServer()
+    end)
+
+    local bagTitle = Instance.new("TextLabel")
+    bagTitle.Size = UDim2.new(1, -28, 0, 20)
+    bagTitle.Position = UDim2.new(0, 14, 0, 278)
+    bagTitle.BackgroundTransparency = 1
+    bagTitle.Font = Enum.Font.GothamBlack
+    bagTitle.TextSize = 12
+    bagTitle.TextColor3 = Color3.fromRGB(215, 224, 242)
+    bagTitle.TextXAlignment = Enum.TextXAlignment.Left
+    bagTitle.Text = "LOOTED WEAPONS & RELICS (Defeat Slimes & Boss):"
+    bagTitle.Parent = forgePanel
+
+    local bagContainer = Instance.new("Frame")
+    bagContainer.Name = "BagContainer"
+    bagContainer.Size = UDim2.new(1, -28, 0, 132)
+    bagContainer.Position = UDim2.new(0, 14, 0, 300)
+    bagContainer.BackgroundTransparency = 1
+    bagContainer.Parent = forgePanel
+
+    local function refreshBagUI(items: { EquipmentItem }, equippedItem: EquipmentItem?)
+        bagContainer:ClearAllChildren()
+
+        if #items == 0 then
+            local emptyLabel = Instance.new("TextLabel")
+            emptyLabel.Size = UDim2.new(1, 0, 0, 40)
+            emptyLabel.BackgroundTransparency = 1
+            emptyLabel.Font = Enum.Font.GothamMedium
+            emptyLabel.TextSize = 11
+            emptyLabel.TextColor3 = Color3.fromRGB(145, 155, 178)
+            emptyLabel.Text = "No weapons looted yet. Defeat Slimes or King Gelatus (South) to pick up Loot Chests!"
+            emptyLabel.TextWrapped = true
+            emptyLabel.Parent = bagContainer
+            return
+        end
+
+        local maxShow = math.min(#items, 4)
+        for i = 1, maxShow do
+            local item = items[i]
+            local rarityInfo = ItemConfig.Rarities[item.Rarity] or ItemConfig.Rarities.Common
+            local isEquipped = equippedItem ~= nil and equippedItem.Uid == item.Uid
+
+            local row = Instance.new("Frame")
+            row.Size = UDim2.new(1, 0, 0, 30)
+            row.Position = UDim2.new(0, 0, 0, (i - 1) * 33)
+            row.BackgroundColor3 = Color3.fromRGB(24, 28, 40)
+            row.BorderSizePixel = 0
+            row.Parent = bagContainer
+            createCorner(row, 4)
+            createStroke(row, rarityInfo.Color, 1)
+
+            local itemText = Instance.new("TextLabel")
+            itemText.Size = UDim2.new(1, -90, 1, 0)
+            itemText.Position = UDim2.new(0, 8, 0, 0)
+            itemText.BackgroundTransparency = 1
+            itemText.Font = Enum.Font.GothamBold
+            itemText.TextSize = 11
+            itemText.TextColor3 = rarityInfo.Color
+            itemText.TextXAlignment = Enum.TextXAlignment.Left
+            itemText.Text = string.format(
+                "%s %s [%s] (+%d ATK, +%d HP)",
+                item.Stars,
+                item.Name,
+                item.ClassReq,
+                item.BonusATK,
+                item.BonusHP
+            )
+            itemText.Parent = row
+
+            local eqBtn = Instance.new("TextButton")
+            eqBtn.Size = UDim2.new(0, 76, 0, 22)
+            eqBtn.Position = UDim2.new(1, -82, 0.5, -11)
+            eqBtn.BackgroundColor3 = if isEquipped then Color3.fromRGB(52, 148, 82) else Color3.fromRGB(58, 72, 104)
+            eqBtn.Font = Enum.Font.GothamBlack
+            eqBtn.TextSize = 10
+            eqBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            eqBtn.Text = if isEquipped then "EQUIPPED" else "EQUIP"
+            eqBtn.Parent = row
+            createCorner(eqBtn, 4)
+
+            eqBtn.MouseButton1Click:Connect(function()
+                Network.getEvent("RequestEquipItem"):FireServer(item.Uid)
+            end)
+        end
+    end
+
+    refreshBagUI({}, nil)
+
+    Network.getEvent("InventorySynced").OnClientEvent
+        :Connect(function(items: { EquipmentItem }, equippedItem: EquipmentItem?)
+            refreshBagUI(items, equippedItem)
+        end)
+
+    local function syncUIPanelCursorState()
+        CameraController.setUIPanelOpen(customPanel.Visible or forgePanel.Visible)
+    end
+
+    local function toggleCustomPanel()
+        customPanel.Visible = not customPanel.Visible
+        if customPanel.Visible then
+            forgePanel.Visible = false
+        end
+        syncUIPanelCursorState()
+    end
+
+    local function toggleForgePanel(forceOpen: boolean?)
+        if forceOpen ~= nil then
+            forgePanel.Visible = forceOpen
+        else
+            forgePanel.Visible = not forgePanel.Visible
+        end
+        if forgePanel.Visible then
+            customPanel.Visible = false
+        end
+        syncUIPanelCursorState()
+    end
+
+    closeForgeBtn.MouseButton1Click:Connect(function()
+        toggleForgePanel(false)
+    end)
+
+    Network.getEvent("OpenForgeUI").OnClientEvent:Connect(function()
+        toggleForgePanel(true)
+    end)
+
+    UserInputService.InputBegan:Connect(function(input: InputObject, _gameProcessed: boolean)
+        if UserInputService:GetFocusedTextBox() ~= nil then
             return
         end
         if input.KeyCode == Enum.KeyCode.C then
             toggleCustomPanel()
+        elseif input.KeyCode == Enum.KeyCode.I or input.KeyCode == Enum.KeyCode.B then
+            toggleForgePanel()
         end
     end)
 
@@ -477,23 +705,52 @@ function HudUI.init()
         local exp = (localPlayer:GetAttribute("Exp") :: number?) or 0
         local maxExp = (localPlayer:GetAttribute("MaxExp") :: number?) or 100
         local gold = (localPlayer:GetAttribute("Gold") :: number?) or 0
+        local potions = (localPlayer:GetAttribute("Potions") :: number?) or 0
+        local bonusATK = (localPlayer:GetAttribute("BonusATK") :: number?) or 0
+        local bonusHP = (localPlayer:GetAttribute("BonusHP") :: number?) or 0
+        local bonusCrit = (localPlayer:GetAttribute("BonusCrit") :: number?) or 0
+        local weaponCubes = (localPlayer:GetAttribute("WeaponCubeCount") :: number?) or 0
+        local eqName = (localPlayer:GetAttribute("EquippedWeaponName") :: string?) or "Wooden Practice Sword"
+        local eqStars = (localPlayer:GetAttribute("EquippedWeaponStars") :: string?) or "★"
         local jobClass = (localPlayer:GetAttribute("JobClass") :: string?) or "Novice"
         local isDodging = localPlayer:GetAttribute("IsDodging") == true
 
         local classEntry = CharacterConfig.JobClasses[jobClass] or CharacterConfig.JobClasses.Novice
         local combatSpec = CombatConfig.Classes[jobClass] or CombatConfig.Classes.Novice
 
-        headerLabel.Text = string.format("LV. %d  [%s]   |   Gold: %d", level, classEntry.DisplayName, gold)
+        headerLabel.Text =
+            string.format("LV. %d [%s]  |  Gold: %d  |  +%d ATK", level, classEntry.DisplayName, gold, bonusATK)
         dodgeBadge.Visible = isDodging
         crosshair.Visible = CameraController.isMouseLocked()
 
         combatInfoText.Text = string.format(
-            "[LMB] %s (+%d MP)   |   [RMB / F] %s (%d MP)",
+            "[LMB] %s (+%d MP)   |   [RMB / F] %s (%d MP)   |   [1] Potion (x%d)",
             combatSpec.WeaponName,
             combatSpec.MPGainPerHit,
             combatSpec.SpecialName,
-            combatSpec.SpecialMPCost
+            combatSpec.SpecialMPCost,
+            potions
         )
+
+        equippedSummary.Text = string.format(
+            "Weapon: %s %s  [Spirit Cubes: +%d/%d]\nTotal Bonus: +%d ATK   |   +%d MaxHP   |   +%d%% Crit",
+            eqStars,
+            eqName,
+            weaponCubes,
+            ItemConfig.MaxWeaponSpiritCubes,
+            bonusATK,
+            bonusHP,
+            bonusCrit
+        )
+
+        for _, cubeKey in ItemConfig.SpiritCubeOrder do
+            local spec = ItemConfig.SpiritCubes[cubeKey]
+            local countAttr = (localPlayer:GetAttribute(cubeKey .. "Count") :: number?) or 0
+            local lbl = cubeCountLabels[cubeKey]
+            if lbl then
+                lbl.Text = string.format("❖ %s (%s) — Owned: x%d", spec.ShortName, spec.Description, countAttr)
+            end
+        end
 
         local qTitle = (localPlayer:GetAttribute("QuestTitle") :: string?) or "Speak to a Class Master NPC"
         local qDesc = (localPlayer:GetAttribute("QuestDesc") :: string?) or ""
@@ -505,7 +762,7 @@ function HudUI.init()
         if qReq > 0 then
             questProgLabel.Text = string.format("Trial Progress:  %d / %d", qProg, qReq)
         else
-            questProgLabel.Text = "Tip: Attack Dummies/Slimes (South) or Talk to Masters (North)"
+            questProgLabel.Text = "Boss Arena (South)  |  Press [I] for Spirit Cube Weapon Forge"
         end
 
         local hpRatio = math.clamp(hp / math.max(1, maxHp), 0, 1)

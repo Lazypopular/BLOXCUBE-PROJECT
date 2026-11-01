@@ -105,12 +105,12 @@ function MovementController.init()
         performClientDodgeBurst(direction)
     end)
 
-    UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
-        if gameProcessed then
+    UserInputService.InputBegan:Connect(function(input: InputObject, _gameProcessed: boolean)
+        if UserInputService:GetFocusedTextBox() ~= nil then
             return
         end
 
-        if input.KeyCode == Enum.KeyCode.LeftShift then
+        if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
             requestSprint:FireServer(true)
         elseif
             input.KeyCode == Enum.KeyCode.Q
@@ -122,7 +122,7 @@ function MovementController.init()
     end)
 
     UserInputService.InputEnded:Connect(function(input: InputObject)
-        if input.KeyCode == Enum.KeyCode.LeftShift then
+        if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
             requestSprint:FireServer(false)
         end
     end)

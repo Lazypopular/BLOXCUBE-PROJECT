@@ -89,13 +89,15 @@ function CombatService.performAttack(player: Player, attackKind: string, aimDire
 
     local baseDamage = if isSpecial then spec.SpecialDamage else (spec.ComboDamage[comboStep] or spec.ComboDamage[1])
     local levelBonus = (session.Level - 1) * 3
+    local equipBonus = session.BonusATK or 0
+    local totalCritChance = math.clamp(spec.CritChance + (session.BonusCrit or 0), 0.05, 0.85)
 
     local hitPositions: { Vector3 } = {}
     local gainedMP = false
 
     for _, mob in targets do
-        local isCrit = math.random() < spec.CritChance
-        local rawDmg = baseDamage + levelBonus
+        local isCrit = math.random() < totalCritChance
+        local rawDmg = baseDamage + levelBonus + equipBonus
         local finalDmg = if isCrit then math.floor(rawDmg * spec.CritMultiplier + 0.5) else rawDmg
 
         table.insert(hitPositions, mob.RootPart.Position)

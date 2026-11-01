@@ -1,14 +1,13 @@
 --!strict
--- Centralized Network Remote Registry for BLOXCUBE
+-- Centralized Network Registry (RemoteEvents & RemoteFunctions)
+-- All Client <-> Server communication must route through this module.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local Network = {}
+local CONTAINER_NAME = "BloxcubeNetwork"
 
-local FOLDER_NAME = "BloxcubeNetwork"
-
-local REMOTE_EVENTS = {
+local EVENT_NAMES = {
     "RequestSprint",
     "RequestDodge",
     "DodgePerformed",
@@ -18,58 +17,62 @@ local REMOTE_EVENTS = {
     "CombatVFX",
     "DamageNumber",
     "QuestNotification",
+    "RequestUsePotion",
+    "RequestAttachCube",
+    "RequestEquipItem",
+    "RequestBuyPotion",
+    "InventorySynced",
+    "OpenForgeUI",
 }
 
-local networkFolder: Folder? = nil
+local Network = {}
 
-local function getOrCreateFolder(): Folder
-    if networkFolder and networkFolder.Parent then
-        return networkFolder
-    end
-
+local function getOrCreateContainer(): Folder
     if RunService:IsServer() then
-        local existing = ReplicatedStorage:FindFirstChild(FOLDER_NAME)
+        local existing = ReplicatedStorage:FindFirstChild(CONTAINER_NAME)
         if existing and existing:IsA("Folder") then
-            networkFolder = existing
             return existing
         end
 
         local folder = Instance.new("Folder")
-        folder.Name = FOLDER_NAME
+        folder.Name = CONTAINER_NAME
         folder.Parent = ReplicatedStorage
-
-        for _, eventName in REMOTE_EVENTS do
-            local remote = Instance.new("RemoteEvent")
-            remote.Name = eventName
-            remote.Parent = folder
-        end
-
-        networkFolder = folder
         return folder
     else
-        local folder = ReplicatedStorage:WaitForChild(FOLDER_NAME, 15) :: Folder
-        networkFolder = folder
-        return folder
+        return ReplicatedStorage:WaitForChild(CONTAINER_NAME, 15) :: Folder
     end
 end
 
 function Network.init()
-    getOrCreateFolder()
+    local container = getOrCreateContainer()
+    if RunService:IsServer() then
+        for _, eventName in EVENT_NAMES do
+            if not container:FindFirstChild(eventName) then
+                local remote = Instance.new("RemoteEvent")
+                remote.Name = eventName
+                remote.Parent = container
+            end
+        end
+    else
+        for _, eventName in EVENT_NAMES do
+            container:WaitForChild(eventName, 15)
+        end
+    end
 end
 
 function Network.getEvent(name: string): RemoteEvent
-    local folder = getOrCreateFolder()
+    local container = getOrCreateContainer()
     if RunService:IsServer() then
-        local remote = folder:FindFirstChild(name)
-        if remote and remote:IsA("RemoteEvent") then
-            return remote
+        local existing = container:FindFirstChild(name)
+        if existing and existing:IsA("RemoteEvent") then
+            return existing
         end
-        local created = Instance.new("RemoteEvent")
-        created.Name = name
-        created.Parent = folder
-        return created
+        local remote = Instance.new("RemoteEvent")
+        remote.Name = name
+        remote.Parent = container
+        return remote
     else
-        return folder:WaitForChild(name, 10) :: RemoteEvent
+        return container:WaitForChild(name, 15) :: RemoteEvent
     end
 end
 
