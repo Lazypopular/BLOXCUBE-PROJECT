@@ -150,7 +150,16 @@ local function spawnFloatingDamageNumber(
     label.Font = Enum.Font.GothamBlack
     label.TextStrokeTransparency = 0.15
 
-    if textOverride then
+    if textOverride == "PLAYER_HIT" then
+        label.Text = "-" .. tostring(amount)
+        label.TextSize = 16
+        label.TextColor3 = Color3.fromRGB(255, 78, 78)
+    elseif textOverride and string.sub(textOverride, 1, 1) == "+" then
+        label.Text = textOverride
+        label.TextSize = 17
+        label.TextColor3 = Color3.fromRGB(92, 245, 128)
+        spawnImpactSparks(worldPosition, Color3.fromRGB(92, 245, 128), 6)
+    elseif textOverride then
         label.Text = textOverride
         label.TextSize = 16
         label.TextColor3 = Color3.fromRGB(95, 225, 255)
@@ -256,7 +265,16 @@ function CombatController.init()
     )
 
     UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
-        if gameProcessed then
+        if UserInputService:GetFocusedTextBox() ~= nil then
+            return
+        end
+
+        if input.KeyCode == Enum.KeyCode.One or input.KeyCode == Enum.KeyCode.KeypadOne then
+            Network.getEvent("RequestUsePotion"):FireServer()
+            return
+        end
+
+        if gameProcessed and input.UserInputType == Enum.UserInputType.MouseButton1 then
             return
         end
 
