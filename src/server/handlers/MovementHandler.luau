@@ -14,6 +14,7 @@ function MovementHandler.init()
     local requestSprint = Network.getEvent("RequestSprint")
     local requestDodge = Network.getEvent("RequestDodge")
     local requestUpdateAppearance = Network.getEvent("RequestUpdateAppearance")
+    local requestCompleteCharacterCreation = Network.getEvent("RequestCompleteCharacterCreation")
 
     requestSprint.OnServerEvent:Connect(function(player: Player, wantSprint: any)
         if not Validator.isBoolean(wantSprint) then
@@ -53,6 +54,35 @@ function MovementHandler.init()
             end
 
             PlayerService.updateAppearance(
+                player,
+                skinTone :: string,
+                eyeColor :: string,
+                hairStyle :: string,
+                hairColor :: string,
+                outfitStyle :: string
+            )
+        end
+    )
+
+    requestCompleteCharacterCreation.OnServerEvent:Connect(
+        function(player: Player, skinTone: any, eyeColor: any, hairStyle: any, hairColor: any, outfitStyle: any)
+            if not Validator.isKeyInTable(skinTone, CharacterConfig.SkinTones) then
+                return
+            end
+            if not Validator.isKeyInTable(eyeColor, CharacterConfig.EyeColors) then
+                return
+            end
+            if not Validator.isInArray(hairStyle, CharacterConfig.HairStyles) then
+                return
+            end
+            if not Validator.isKeyInTable(hairColor, CharacterConfig.HairColors) then
+                return
+            end
+            if not Validator.isKeyInTable(outfitStyle, CharacterConfig.StarterOutfits) then
+                return
+            end
+
+            PlayerService.completeCharacterCreation(
                 player,
                 skinTone :: string,
                 eyeColor :: string,

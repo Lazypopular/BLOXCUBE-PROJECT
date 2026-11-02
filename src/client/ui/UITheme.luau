@@ -9,21 +9,21 @@ local UITheme = {}
 UITheme.Colors = {
     -- Surfaces
     Backdrop = Color3.fromRGB(6, 8, 14),
-    Surface = Color3.fromRGB(18, 21, 32),
-    SurfaceRaised = Color3.fromRGB(27, 31, 46),
-    SurfaceSunken = Color3.fromRGB(12, 14, 22),
-    SurfaceHover = Color3.fromRGB(38, 44, 64),
-    Border = Color3.fromRGB(58, 66, 92),
-    BorderSoft = Color3.fromRGB(40, 46, 66),
+    Surface = Color3.fromRGB(16, 19, 30),
+    SurfaceRaised = Color3.fromRGB(26, 31, 46),
+    SurfaceSunken = Color3.fromRGB(10, 12, 20),
+    SurfaceHover = Color3.fromRGB(36, 42, 62),
+    Border = Color3.fromRGB(52, 60, 84),
+    BorderSoft = Color3.fromRGB(36, 42, 60),
     Shadow = Color3.fromRGB(0, 0, 0),
 
     -- Text
-    Text = Color3.fromRGB(240, 243, 250),
-    TextMuted = Color3.fromRGB(156, 166, 192),
-    TextDim = Color3.fromRGB(104, 114, 140),
+    Text = Color3.fromRGB(244, 246, 252),
+    TextMuted = Color3.fromRGB(164, 174, 202),
+    TextDim = Color3.fromRGB(112, 122, 148),
 
     -- Accents
-    Gold = Color3.fromRGB(255, 202, 72),
+    Gold = Color3.fromRGB(255, 208, 88),
     GoldDeep = Color3.fromRGB(196, 134, 32),
     Primary = Color3.fromRGB(78, 164, 255),
     Success = Color3.fromRGB(86, 210, 120),
@@ -185,15 +185,15 @@ end
 function UITheme.panel(props: { [string]: any }, accent: Color3?): Frame
     local merged: { [string]: any } = {
         BackgroundColor3 = UITheme.Colors.Surface,
-        BackgroundTransparency = 0.08,
+        BackgroundTransparency = 0.14,
     }
     for k, v in props do
         merged[k] = v
     end
     local frame = UITheme.new("Frame", merged)
-    UITheme.corner(frame, UITheme.Radius.Medium)
-    UITheme.stroke(frame, accent or UITheme.Colors.Border, 1.5, 0.15)
-    UITheme.gradient(frame, Color3.fromRGB(255, 255, 255), Color3.fromRGB(200, 205, 220), 90)
+    UITheme.corner(frame, UITheme.Radius.Medium + 2)
+    UITheme.stroke(frame, accent or UITheme.Colors.BorderSoft, 1, 0.4)
+    UITheme.gradient(frame, Color3.fromRGB(255, 255, 255), Color3.fromRGB(195, 200, 215), 90)
     return frame
 end
 
@@ -455,13 +455,13 @@ function UITheme.window(
         AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5),
         Position = props.Position or UDim2.fromScale(0.5, 0.5),
         BackgroundColor3 = UITheme.Colors.Surface,
-        BackgroundTransparency = 0.03,
+        BackgroundTransparency = 0.08,
         Visible = false,
         ZIndex = 20,
         Parent = parent,
     })
     UITheme.corner(frame, UITheme.Radius.Large)
-    UITheme.stroke(frame, props.Accent, 2, 0.25)
+    UITheme.stroke(frame, props.Accent, 1.5, 0.35)
     local popScale = UITheme.new("UIScale", { Scale = 1, Parent = frame }) :: UIScale
 
     -- Header strip

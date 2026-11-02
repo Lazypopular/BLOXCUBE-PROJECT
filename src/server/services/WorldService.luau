@@ -440,10 +440,10 @@ function WorldService.init()
         baseplate.Material = Enum.Material.SmoothPlastic
     end
 
-    -- Stone Pathways connecting North Guild Courtyard -> Spawn Plaza -> South Slime & Boss Ruins
+    -- Stone road from Emberleaf Village's South Gate -> Slime Meadow & Boss Ruins
+    -- (the village plaza & inner roads are built by VillageService)
     local pathStone = Color3.fromRGB(154, 158, 168)
-    createBlock("CenterPlaza", Vector3.new(20, 0.25, 20), pathStone, CFrame.new(0, 0.12, 0), worldFolder, true)
-    for z = -22, 62, 7 do
+    for z = 31, 62, 7 do
         createBlock("RoadTile_" .. z, Vector3.new(7.5, 0.22, 5.2), pathStone, CFrame.new(0, 0.11, z), worldFolder, true)
     end
 
@@ -457,8 +457,8 @@ function WorldService.init()
     local treeConfigs = {
         { Pos = Vector3.new(-34, 0, -18), Scale = 1.15, Color = Color3.fromRGB(68, 168, 76) },
         { Pos = Vector3.new(34, 0, -18), Scale = 1.1, Color = Color3.fromRGB(78, 182, 82) },
-        { Pos = Vector3.new(-38, 0, 12), Scale = 1.25, Color = Color3.fromRGB(64, 158, 72) },
-        { Pos = Vector3.new(38, 0, 12), Scale = 1.2, Color = Color3.fromRGB(86, 188, 78) },
+        { Pos = Vector3.new(-52, 0, 14), Scale = 1.25, Color = Color3.fromRGB(64, 158, 72) },
+        { Pos = Vector3.new(52, 0, 14), Scale = 1.2, Color = Color3.fromRGB(86, 188, 78) },
         { Pos = Vector3.new(-36, 0, 44), Scale = 1.1, Color = Color3.fromRGB(72, 174, 84) },
         { Pos = Vector3.new(36, 0, 44), Scale = 1.3, Color = Color3.fromRGB(64, 158, 72) },
         { Pos = Vector3.new(-32, 0, 76), Scale = 1.2, Color = Color3.fromRGB(58, 148, 68) },

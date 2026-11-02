@@ -22,13 +22,18 @@ local currentFOV = GameConfig.Camera.DefaultFOV
 local mouseLocked = true
 local uiPanelOpen = false
 local altHeld = false
+local wasCreatingCharacter = false
 
 local raycastParams = RaycastParams.new()
 raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 raycastParams.IgnoreWater = true
 
+local function isCreatingCharacter(): boolean
+    return localPlayer:GetAttribute("IsCreatingCharacter") == true
+end
+
 local function updateMouseLockState()
-    local shouldLock = mouseLocked and not uiPanelOpen and not altHeld
+    local shouldLock = mouseLocked and not uiPanelOpen and not altHeld and not isCreatingCharacter()
     if shouldLock then
         UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
         UserInputService.MouseIconEnabled = false
@@ -44,7 +49,7 @@ function CameraController.setUIPanelOpen(isOpen: boolean)
 end
 
 function CameraController.isMouseLocked(): boolean
-    return mouseLocked and not uiPanelOpen and not altHeld
+    return mouseLocked and not uiPanelOpen and not altHeld and not isCreatingCharacter()
 end
 
 function CameraController.getLookVector(): Vector3
@@ -128,6 +133,20 @@ function CameraController.init()
 
         updateMouseLockState()
         camera.CameraType = Enum.CameraType.Scriptable
+
+        -- Character Creation Stage Portrait Camera
+        if isCreatingCharacter() then
+            wasCreatingCharacter = true
+            camera.FieldOfView = 55
+            local lookAtTarget = rootPart.Position + Vector3.new(1.5, 0.55, 0)
+            local camPos = rootPart.Position + Vector3.new(1.8, 1.45, 7.6)
+            camera.CFrame = CFrame.lookAt(camPos, lookAtTarget)
+            return
+        elseif wasCreatingCharacter then
+            wasCreatingCharacter = false
+            yaw = 0
+            pitch = -12
+        end
 
         -- Smooth Zoom & Sprint FOV
         currentDistance = currentDistance + (targetDistance - currentDistance) * math.min(1, dt * 14)

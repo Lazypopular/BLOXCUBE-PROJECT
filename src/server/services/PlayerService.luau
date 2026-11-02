@@ -10,6 +10,7 @@ local CombatConfig = require(ReplicatedStorage.configs.CombatConfig)
 local GameConfig = require(ReplicatedStorage.configs.GameConfig)
 local ItemConfig = require(ReplicatedStorage.configs.ItemConfig)
 local PetConfig = require(ReplicatedStorage.configs.PetConfig)
+local WorldConfig = require(ReplicatedStorage.configs.WorldConfig)
 local Network = require(ReplicatedStorage.network)
 local DataService = require(script.Parent.DataService)
 local VoxelRigService = require(script.Parent.VoxelRigService)
@@ -19,6 +20,7 @@ type EquipmentItem = ItemConfig.EquipmentItem
 
 export type PlayerSession = {
     Player: Player,
+    HasCreatedCharacter: boolean,
     Level: number,
     Exp: number,
     MaxExp: number,
@@ -82,6 +84,7 @@ end
 
 local function serializeSession(session: PlayerSession): { [string]: any }
     return {
+        HasCreatedCharacter = session.HasCreatedCharacter,
         Level = session.Level,
         Exp = session.Exp,
         MaxExp = session.MaxExp,
@@ -144,6 +147,8 @@ local function syncAttributes(session: PlayerSession)
     local eqRarity = if session.EquippedItem then session.EquippedItem.Rarity else "Common"
     local eqStars = if session.EquippedItem then session.EquippedItem.Stars else "★"
 
+    player:SetAttribute("IsCreatingCharacter", not session.HasCreatedCharacter)
+    player:SetAttribute("VillageName", WorldConfig.Village.Name)
     player:SetAttribute("Level", session.Level)
     player:SetAttribute("Exp", session.Exp)
     player:SetAttribute("MaxExp", session.MaxExp)
@@ -198,6 +203,13 @@ local function updateCharacterWalkSpeed(session: PlayerSession)
         return
     end
 
+    if not session.HasCreatedCharacter then
+        humanoid.WalkSpeed = 0
+        humanoid.JumpPower = 0
+        return
+    end
+
+    humanoid.JumpPower = GameConfig.Movement.JumpPower
     if session.IsMounted then
         local petSpec = PetConfig.Pets[session.ActivePetId] or PetConfig.Pets.SlimePet
         humanoid.WalkSpeed = petSpec.MountSpeed
@@ -242,6 +254,17 @@ local function onCharacterAdded(session: PlayerSession, character: Model)
     syncAttributes(session)
     syncInventoryToClient(session)
 
+    task.defer(function()
+        if not character.Parent then
+            return
+        end
+        if not session.HasCreatedCharacter then
+            character:PivotTo(WorldConfig.getCreationStageCFrame())
+        else
+            character:PivotTo(WorldConfig.getVillageSpawnCFrame(session.Player.UserId))
+        end
+    end)
+
     local diedConn: RBXScriptConnection?
     diedConn = humanoid.Died:Connect(function()
         if diedConn then
@@ -269,6 +292,9 @@ local function setupPlayer(player: Player)
 
     local session: PlayerSession = {
         Player = player,
+        HasCreatedCharacter = if saved and type(saved.HasCreatedCharacter) == "boolean"
+            then saved.HasCreatedCharacter
+            else false,
         Level = if saved and type(saved.Level) == "number" then saved.Level else 1,
         Exp = if saved and type(saved.Exp) == "number" then saved.Exp else 0,
         MaxExp = if saved and type(saved.MaxExp) == "number" then saved.MaxExp else 100,
@@ -573,6 +599,43 @@ function PlayerService.updateAppearance(
     if player.Character then
         VoxelRigService.updateAppearanceAndCostume(player.Character, session.Appearance, session.JobClass)
     end
+end
+
+function PlayerService.completeCharacterCreation(
+    player: Player,
+    skinTone: string,
+    eyeColor: string,
+    hairStyle: string,
+    hairColor: string,
+    outfitStyle: string
+)
+    local session = sessions[player]
+    if not session then
+        return
+    end
+
+    session.Appearance.SkinTone = skinTone
+    session.Appearance.EyeColor = eyeColor
+    session.Appearance.HairStyle = hairStyle
+    session.Appearance.HairColor = hairColor
+    session.Appearance.OutfitStyle = outfitStyle
+    session.HasCreatedCharacter = true
+
+    syncAttributes(session)
+
+    local character = player.Character
+    if character then
+        VoxelRigService.updateAppearanceAndCostume(character, session.Appearance, session.JobClass)
+        updateCharacterWalkSpeed(session)
+        character:PivotTo(WorldConfig.getVillageSpawnCFrame(player.UserId))
+    end
+
+    Network.getEvent("QuestNotification"):FireClient(
+        player,
+        "🏡 WELCOME TO " .. string.upper(WorldConfig.Village.Name),
+        WorldConfig.Village.Tagline .. "  •  Head North to the Guild Courtyard to choose a Class!",
+        Color3.fromRGB(255, 214, 96)
+    )
 end
 
 function PlayerService.setJobClass(player: Player, newClass: string)

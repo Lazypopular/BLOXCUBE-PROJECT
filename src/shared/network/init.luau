@@ -26,6 +26,7 @@ local EVENT_NAMES = {
     "RequestSelectPet",
     "RequestToggleMount",
     "RequestToggleGlider",
+    "RequestCompleteCharacterCreation",
 }
 
 local Network = {}
