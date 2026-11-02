@@ -399,6 +399,100 @@ function HudUI.init()
         end)
 
     ---------------------------------------------------------------------------
+    -- 3b. ZONE DISCOVERY BANNER (Top-Center, RPG Style)
+    ---------------------------------------------------------------------------
+    local zoneBanner = UITheme.panel({
+        Name = "ZoneBanner",
+        Size = UDim2.fromOffset(400, 74),
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position = UDim2.new(0.5, 0, 0, 72),
+        BackgroundTransparency = 0.12,
+        Visible = false,
+        ZIndex = 35,
+        Parent = screenGui,
+    }, C.Gold)
+    UITheme.shadow(zoneBanner, 4, 0.45)
+
+    UITheme.new("Frame", {
+        Name = "ZoneTopStripe",
+        Size = UDim2.new(1, 0, 0, 2),
+        BackgroundColor3 = C.Gold,
+        BackgroundTransparency = 0.35,
+        ZIndex = 36,
+        Parent = zoneBanner,
+    })
+
+    local zoneRegion = UITheme.label({
+        Size = UDim2.new(1, 0, 0, 14),
+        Position = UDim2.fromOffset(0, 10),
+        Font = F.Heavy,
+        TextSize = 10,
+        TextColor3 = C.Gold,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        Text = "◆  EMBERLEAF VALLEY  ◆",
+        ZIndex = 36,
+        Parent = zoneBanner,
+    })
+
+    local zoneNameLabel = UITheme.label({
+        Size = UDim2.new(1, 0, 0, 26),
+        Position = UDim2.fromOffset(0, 24),
+        Font = F.Display,
+        TextSize = 22,
+        TextColor3 = C.Text,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        Text = "EMBERLEAF VILLAGE",
+        ZIndex = 36,
+        Parent = zoneBanner,
+    })
+
+    local zoneSubLabel = UITheme.label({
+        Size = UDim2.new(1, 0, 0, 16),
+        Position = UDim2.fromOffset(0, 50),
+        Font = F.Medium,
+        TextSize = 11,
+        TextColor3 = C.TextMuted,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        Text = "The Peaceful Hamlet  •  The Journey Begins",
+        ZIndex = 36,
+        Parent = zoneBanner,
+    })
+
+    local zoneBannerToken = 0
+    local function showZoneBanner(title: string, subtitle: string?, region: string?)
+        zoneBannerToken += 1
+        local myToken = zoneBannerToken
+
+        zoneNameLabel.Text = string.upper(title)
+        zoneSubLabel.Text = subtitle or ""
+        zoneRegion.Text = if region then string.format("◆  %s  ◆", string.upper(region)) else "◆  DISCOVERY  ◆"
+
+        zoneBanner.Position = UDim2.new(0.5, 0, 0, 36)
+        zoneBanner.BackgroundTransparency = 1
+        zoneBanner.Visible = true
+
+        UITheme.tween(zoneBanner, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Position = UDim2.new(0.5, 0, 0, 72),
+            BackgroundTransparency = 0.12,
+        })
+
+        task.delay(4.0, function()
+            if zoneBannerToken ~= myToken then
+                return
+            end
+            local out = UITheme.tween(zoneBanner, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                Position = UDim2.new(0.5, 0, 0, 48),
+                BackgroundTransparency = 1,
+            })
+            out.Completed:Once(function()
+                if zoneBannerToken == myToken then
+                    zoneBanner.Visible = false
+                end
+            end)
+        end)
+    end
+
+    ---------------------------------------------------------------------------
     -- 4. CROSSHAIR (Center)
     ---------------------------------------------------------------------------
     local crosshair = UITheme.new("Frame", {
@@ -616,6 +710,7 @@ function HudUI.init()
 
     type SelectorRow = { Value: TextLabel, Swatch: Frame }
     local rows: { [string]: SelectorRow } = {}
+    local creationRows: { [string]: SelectorRow } = {}
 
     local function refreshAppearanceRows()
         local skin = CharacterConfig.SkinTones[skinList[skinIdx]]
@@ -623,16 +718,31 @@ function HudUI.init()
         local hairColor = CharacterConfig.HairColors[hairColorList[hairColorIdx]]
         local outfit = CharacterConfig.StarterOutfits[outfitList[outfitIdx]]
 
-        rows.SkinTone.Value.Text = skin.Name
-        rows.SkinTone.Swatch.BackgroundColor3 = skin.Color
-        rows.EyeColor.Value.Text = eye.Name
-        rows.EyeColor.Swatch.BackgroundColor3 = eye.Color
-        rows.HairStyle.Value.Text = hairStyleList[hairStyleIdx]
-        rows.HairStyle.Swatch.BackgroundColor3 = hairColor.Color
-        rows.HairColor.Value.Text = hairColor.Name
-        rows.HairColor.Swatch.BackgroundColor3 = hairColor.Color
-        rows.OutfitStyle.Value.Text = outfit.Name
-        rows.OutfitStyle.Swatch.BackgroundColor3 = outfit.ShirtColor
+        local function applyTo(r: { [string]: SelectorRow })
+            if r.SkinTone then
+                r.SkinTone.Value.Text = skin.Name
+                r.SkinTone.Swatch.BackgroundColor3 = skin.Color
+            end
+            if r.EyeColor then
+                r.EyeColor.Value.Text = eye.Name
+                r.EyeColor.Swatch.BackgroundColor3 = eye.Color
+            end
+            if r.HairStyle then
+                r.HairStyle.Value.Text = hairStyleList[hairStyleIdx]
+                r.HairStyle.Swatch.BackgroundColor3 = hairColor.Color
+            end
+            if r.HairColor then
+                r.HairColor.Value.Text = hairColor.Name
+                r.HairColor.Swatch.BackgroundColor3 = hairColor.Color
+            end
+            if r.OutfitStyle then
+                r.OutfitStyle.Value.Text = outfit.Name
+                r.OutfitStyle.Swatch.BackgroundColor3 = outfit.ShirtColor
+            end
+        end
+
+        applyTo(rows)
+        applyTo(creationRows)
     end
 
     local function pushAppearanceUpdate()
@@ -656,20 +766,28 @@ function HudUI.init()
         refreshAppearanceRows()
     end
 
-    local function createSelectorRow(order: number, rowKey: string, title: string, onStep: (delta: number) -> ())
+    local function createSelectorRow(
+        parent: Instance,
+        targetMap: { [string]: SelectorRow },
+        order: number,
+        rowKey: string,
+        title: string,
+        onStep: (delta: number) -> ()
+    )
         local row = UITheme.new("Frame", {
             Name = rowKey .. "Row",
-            Size = UDim2.new(1, 0, 0, 44),
+            Size = UDim2.new(1, 0, 0, 42),
             BackgroundColor3 = C.SurfaceRaised,
+            BackgroundTransparency = 0.2,
             LayoutOrder = order,
             ZIndex = 21,
-            Parent = appearanceBody,
+            Parent = parent,
         })
         UITheme.corner(row, UITheme.Radius.Medium)
-        UITheme.stroke(row, C.BorderSoft, 1)
+        UITheme.stroke(row, C.BorderSoft, 1, 0.45)
 
         UITheme.label({
-            Size = UDim2.fromOffset(92, 44),
+            Size = UDim2.fromOffset(92, 42),
             Position = UDim2.fromOffset(12, 0),
             Font = F.Heavy,
             TextSize = 10,
@@ -681,8 +799,8 @@ function HudUI.init()
 
         UITheme.button(
             {
-                Size = UDim2.fromOffset(30, 30),
-                Position = UDim2.new(0, 104, 0.5, -15),
+                Size = UDim2.fromOffset(28, 28),
+                Position = UDim2.new(0, 102, 0.5, -14),
                 Text = "‹",
                 TextSize = 18,
                 ZIndex = 22,
@@ -698,7 +816,7 @@ function HudUI.init()
         local swatch = UITheme.new("Frame", {
             Size = UDim2.fromOffset(14, 14),
             AnchorPoint = Vector2.new(0, 0.5),
-            Position = UDim2.new(0, 142, 0.5, 0),
+            Position = UDim2.new(0, 138, 0.5, 0),
             BackgroundColor3 = Color3.fromRGB(255, 255, 255),
             ZIndex = 22,
             Parent = row,
@@ -707,8 +825,8 @@ function HudUI.init()
         UITheme.stroke(swatch, Color3.fromRGB(0, 0, 0), 1, 0.3)
 
         local value = UITheme.label({
-            Size = UDim2.new(1, -206, 1, 0),
-            Position = UDim2.fromOffset(162, 0),
+            Size = UDim2.new(1, -196, 1, 0),
+            Position = UDim2.fromOffset(158, 0),
             Font = F.Bold,
             TextSize = 12,
             TextColor3 = C.Text,
@@ -719,8 +837,8 @@ function HudUI.init()
 
         UITheme.button(
             {
-                Size = UDim2.fromOffset(30, 30),
-                Position = UDim2.new(1, -38, 0.5, -15),
+                Size = UDim2.fromOffset(28, 28),
+                Position = UDim2.new(1, -36, 0.5, -14),
                 Text = "›",
                 TextSize = 18,
                 ZIndex = 22,
@@ -733,7 +851,7 @@ function HudUI.init()
             end
         )
 
-        rows[rowKey] = { Value = value, Swatch = swatch }
+        targetMap[rowKey] = { Value = value, Swatch = swatch }
     end
 
     local function wrap(i: number, delta: number, n: number): number
@@ -741,20 +859,20 @@ function HudUI.init()
     end
 
     UITheme.sectionHeader(appearanceBody, "Body", { LayoutOrder = 0 })
-    createSelectorRow(1, "SkinTone", "Race / Skin", function(d)
+    createSelectorRow(appearanceBody, rows, 1, "SkinTone", "Race / Skin", function(d)
         skinIdx = wrap(skinIdx, d, #skinList)
     end)
-    createSelectorRow(2, "EyeColor", "Eyes", function(d)
+    createSelectorRow(appearanceBody, rows, 2, "EyeColor", "Eyes", function(d)
         eyeIdx = wrap(eyeIdx, d, #eyeList)
     end)
-    createSelectorRow(3, "HairStyle", "Hair Style", function(d)
+    createSelectorRow(appearanceBody, rows, 3, "HairStyle", "Hair Style", function(d)
         hairStyleIdx = wrap(hairStyleIdx, d, #hairStyleList)
     end)
-    createSelectorRow(4, "HairColor", "Hair Color", function(d)
+    createSelectorRow(appearanceBody, rows, 4, "HairColor", "Hair Color", function(d)
         hairColorIdx = wrap(hairColorIdx, d, #hairColorList)
     end)
     UITheme.sectionHeader(appearanceBody, "Clothing", { LayoutOrder = 5 })
-    createSelectorRow(6, "OutfitStyle", "Outfit", function(d)
+    createSelectorRow(appearanceBody, rows, 6, "OutfitStyle", "Outfit", function(d)
         outfitIdx = wrap(outfitIdx, d, #outfitList)
     end)
 
@@ -802,6 +920,170 @@ function HudUI.init()
             syncAppearanceFromAttributes()
         end
     end)
+
+    ---------------------------------------------------------------------------
+    -- HERO CREATION SCREEN (Character Creation on Hero's Dawn Islet)
+    ---------------------------------------------------------------------------
+    local heroCreationFrame = UITheme.new("Frame", {
+        Name = "HeroCreationScreen",
+        Size = UDim2.fromOffset(380, 520),
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -28, 0.5, 0),
+        BackgroundColor3 = C.Surface,
+        BackgroundTransparency = 0.12,
+        Visible = false,
+        ZIndex = 40,
+        Parent = screenGui,
+    })
+    UITheme.corner(heroCreationFrame, UITheme.Radius.Large)
+    UITheme.stroke(heroCreationFrame, C.Gold, 1.5, 0.35)
+    UITheme.shadow(heroCreationFrame, 6, 0.45)
+
+    local creationHeader = UITheme.new("Frame", {
+        Name = "CreationHeader",
+        Size = UDim2.new(1, 0, 0, 68),
+        BackgroundColor3 = C.SurfaceRaised,
+        BackgroundTransparency = 0.15,
+        ZIndex = 41,
+        Parent = heroCreationFrame,
+    })
+    UITheme.corner(creationHeader, UITheme.Radius.Large)
+    UITheme.gradient(creationHeader, C.Gold:Lerp(C.SurfaceRaised, 0.75), C.SurfaceRaised, 0)
+    UITheme.new("Frame", {
+        Size = UDim2.new(1, 0, 0, 12),
+        Position = UDim2.new(0, 0, 1, -12),
+        BackgroundColor3 = C.SurfaceRaised,
+        BackgroundTransparency = 0.15,
+        ZIndex = 41,
+        Parent = creationHeader,
+    })
+    UITheme.new("Frame", {
+        Size = UDim2.new(1, 0, 0, 2),
+        Position = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = C.Gold,
+        BackgroundTransparency = 0.4,
+        ZIndex = 42,
+        Parent = creationHeader,
+    })
+
+    UITheme.label({
+        Size = UDim2.new(1, -24, 0, 14),
+        Position = UDim2.fromOffset(16, 8),
+        Font = F.Heavy,
+        TextSize = 10,
+        TextColor3 = C.Gold,
+        Text = "✦  HERO CREATION  ✦",
+        ZIndex = 42,
+        Parent = creationHeader,
+    })
+    UITheme.label({
+        Size = UDim2.new(1, -24, 0, 22),
+        Position = UDim2.fromOffset(16, 24),
+        Font = F.Display,
+        TextSize = 20,
+        TextColor3 = C.Text,
+        Text = "Forge Your Adventurer",
+        ZIndex = 42,
+        Parent = creationHeader,
+    })
+    UITheme.label({
+        Size = UDim2.new(1, -24, 0, 16),
+        Position = UDim2.fromOffset(16, 46),
+        Font = F.Medium,
+        TextSize = 11,
+        TextColor3 = C.TextMuted,
+        Text = "Customize your look before entering Emberleaf Village",
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        ZIndex = 42,
+        Parent = creationHeader,
+    })
+
+    local creationBody = UITheme.new("Frame", {
+        Name = "CreationBody",
+        Size = UDim2.new(1, 0, 1, -68),
+        Position = UDim2.fromOffset(0, 68),
+        BackgroundTransparency = 1,
+        ZIndex = 41,
+        Parent = heroCreationFrame,
+    })
+    UITheme.padding(creationBody, 10, 14, 12, 14)
+    UITheme.listLayout(creationBody, Enum.FillDirection.Vertical, 7)
+
+    UITheme.sectionHeader(creationBody, "Body & Appearance", { LayoutOrder = 0 })
+    createSelectorRow(creationBody, creationRows, 1, "SkinTone", "Race / Skin", function(d)
+        skinIdx = wrap(skinIdx, d, #skinList)
+    end)
+    createSelectorRow(creationBody, creationRows, 2, "EyeColor", "Eyes", function(d)
+        eyeIdx = wrap(eyeIdx, d, #eyeList)
+    end)
+    createSelectorRow(creationBody, creationRows, 3, "HairStyle", "Hair Style", function(d)
+        hairStyleIdx = wrap(hairStyleIdx, d, #hairStyleList)
+    end)
+    createSelectorRow(creationBody, creationRows, 4, "HairColor", "Hair Color", function(d)
+        hairColorIdx = wrap(hairColorIdx, d, #hairColorList)
+    end)
+    UITheme.sectionHeader(creationBody, "Starting Attire", { LayoutOrder = 5 })
+    createSelectorRow(creationBody, creationRows, 6, "OutfitStyle", "Outfit", function(d)
+        outfitIdx = wrap(outfitIdx, d, #outfitList)
+    end)
+
+    local creationFooter = UITheme.new("Frame", {
+        Size = UDim2.new(1, 0, 0, 84),
+        BackgroundTransparency = 1,
+        LayoutOrder = 7,
+        ZIndex = 42,
+        Parent = creationBody,
+    })
+
+    UITheme.button(
+        {
+            Size = UDim2.new(1, 0, 0, 32),
+            Position = UDim2.fromOffset(0, 0),
+            Text = "🎲  RANDOMIZE LOOK",
+            TextSize = 11,
+            ZIndex = 43,
+            Parent = creationFooter,
+        },
+        "Secondary",
+        function()
+            skinIdx = math.random(1, #skinList)
+            eyeIdx = math.random(1, #eyeList)
+            hairStyleIdx = math.random(1, #hairStyleList)
+            hairColorIdx = math.random(1, #hairColorList)
+            outfitIdx = math.random(1, #outfitList)
+            pushAppearanceUpdate()
+        end
+    )
+
+    local enterVillageBtn: Button
+    enterVillageBtn = UITheme.button(
+        {
+            Size = UDim2.new(1, 0, 0, 44),
+            Position = UDim2.fromOffset(0, 38),
+            Text = "⚔  ENTER EMBERLEAF VILLAGE  →",
+            Font = F.Display,
+            TextSize = 14,
+            ZIndex = 43,
+            Parent = creationFooter,
+        },
+        "Gold",
+        function()
+            enterVillageBtn.SetEnabled(false)
+            enterVillageBtn.SetText("ENTERING EMBERLEAF VILLAGE...")
+            Network.getEvent("RequestCompleteCharacterCreation"):FireServer(
+                skinList[skinIdx],
+                eyeList[eyeIdx],
+                hairStyleList[hairStyleIdx],
+                hairColorList[hairColorIdx],
+                outfitList[outfitIdx]
+            )
+            UITheme.tween(
+                heroCreationFrame,
+                TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+                { Position = UDim2.new(1, 420, 0.5, 0) }
+            )
+        end
+    )
 
     ---------------------------------------------------------------------------
     -- 6b. SPIRIT FORGE & LOOT BAG WINDOW [I] / [B]
@@ -1496,10 +1778,71 @@ function HudUI.init()
     makeDockButton(4, "?", "H", "Help", helpWin)
 
     ---------------------------------------------------------------------------
+    -- 7b. HUD VISIBILITY & CHARACTER CREATION STATE MANAGEMENT
+    ---------------------------------------------------------------------------
+    local function setGameplayHudVisible(visible: boolean)
+        playerFrame.Visible = visible
+        questCard.Visible = visible
+        hotbar.Visible = visible
+        expBar.Container.Visible = visible
+        dock.Visible = visible
+        statusRow.Visible = visible
+        if not visible then
+            crosshair.Visible = false
+        end
+    end
+
+    local lastWasCreating = localPlayer:GetAttribute("IsCreatingCharacter") == true
+    local bannerShownOnJoin = false
+
+    local function updateCreationMode(isCreating: boolean)
+        if isCreating then
+            setGameplayHudVisible(false)
+            heroCreationFrame.Visible = true
+            heroCreationFrame.Position = UDim2.new(1, -28, 0.5, 0)
+            syncAppearanceFromAttributes()
+            appearanceWin.Close()
+            forgeWin.Close()
+            petWin.Close()
+            helpWin.Close()
+        else
+            heroCreationFrame.Visible = false
+            setGameplayHudVisible(true)
+        end
+    end
+
+    localPlayer:GetAttributeChangedSignal("IsCreatingCharacter"):Connect(function()
+        local isCreating = localPlayer:GetAttribute("IsCreatingCharacter") == true
+        updateCreationMode(isCreating)
+        if lastWasCreating and not isCreating then
+            task.delay(0.4, function()
+                showZoneBanner("Emberleaf Village", "The Peaceful Hamlet  •  The Journey Begins", "Emberleaf Valley")
+            end)
+        end
+        lastWasCreating = isCreating
+    end)
+
+    updateCreationMode(lastWasCreating)
+
+    -- If player joined and already created character previously (returning player)
+    task.defer(function()
+        if not getBool("IsCreatingCharacter") and not bannerShownOnJoin then
+            bannerShownOnJoin = true
+            task.delay(1.2, function()
+                local vName = getString("VillageName", "Emberleaf Village")
+                showZoneBanner(vName, "Welcome back, Adventurer", "Emberleaf Valley")
+            end)
+        end
+    end)
+
+    ---------------------------------------------------------------------------
     -- 8. HOTKEYS
     ---------------------------------------------------------------------------
     UserInputService.InputBegan:Connect(function(input: InputObject, _gameProcessed: boolean)
         if UserInputService:GetFocusedTextBox() ~= nil then
+            return
+        end
+        if getBool("IsCreatingCharacter") then
             return
         end
         local key = input.KeyCode
@@ -1539,6 +1882,10 @@ function HudUI.init()
     end
 
     RunService.RenderStepped:Connect(function(dt: number)
+        if getBool("IsCreatingCharacter") then
+            crosshair.Visible = false
+            return
+        end
         local now = os.clock()
         local hp = getNumber("HP", GameConfig.Stats.BaseMaxHP)
         local maxHp = getNumber("MaxHP", GameConfig.Stats.BaseMaxHP)

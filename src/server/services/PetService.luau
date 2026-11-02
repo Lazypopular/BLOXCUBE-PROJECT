@@ -332,6 +332,9 @@ function PetService.init()
 
             -- Follow AI beside owner + Combat Assist against nearby hostile Mobs
             local desiredFollowPos = (ownerRoot.CFrame * CFrame.new(-3.6, -1.6, 2.2)).Position
+            if (desiredFollowPos - pet.CurrentPos).Magnitude > 45 then
+                pet.CurrentPos = desiredFollowPos
+            end
             local nearestTargets =
                 MobService.getTargetsInArc(ownerRoot.Position, ownerRoot.CFrame.LookVector, 15.0, 15.0, true)
 
